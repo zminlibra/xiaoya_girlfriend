@@ -598,11 +598,14 @@
   }
 
   // ---------- WebSocket ----------
+  let connectFails = 0;
+  let warnedBusy = false;
   function connect() {
     setStatus("连接后端…");
     ws = new WebSocket(WS_URL);
     ws.onopen = () => {
       connected = true;
+      connectFails = 0;
       setStatus("已连接 · 点击开始对话", "connected");
       // 配置会话（含 agent 工具）
       const session = {
@@ -623,7 +626,12 @@
     };
     ws.onclose = () => {
       connected = false;
+      connectFails++;
       setStatus("连接断开，3 秒后重连…", "error");
+      if (connectFails >= 3 && !warnedBusy) {
+        warnedBusy = true;
+        addMsg("ai", "(连接后端失败：可能服务未启动，或被另一个小雅窗口占用了连接槽位，请关闭其他小雅实例后重试)");
+      }
       setTimeout(() => { if (!connected) connect(); }, 3000);
     };
     ws.onerror = () => setStatus("连接错误", "error");
@@ -1696,11 +1704,23 @@
     } else {
       personalityState.classList.add("hidden");
     }
-    renderMemoryList();
+    refreshMemoryList();
     settingsModal.classList.remove("hidden");
   });
 
   // 长期记忆管理
+  // 打开弹窗时从向量库拉取全部记忆（P2），后端不可用则用本地 localStorage 兜底
+  async function refreshMemoryList() {
+    try {
+      const res = await fetch("/api/memory/list");
+      const json = await res.json();
+      if (res.ok && Array.isArray(json.memories)) {
+        memoryItems = json.memories.slice(-500);
+        localStorage.setItem("xiaoya_memory_items", JSON.stringify(memoryItems));
+      }
+    } catch (e) { /* 后端未就绪，用本地 */ }
+    renderMemoryList();
+  }
   function renderMemoryList() {
     const list = $("memory-list");
     const count = $("memory-count");
