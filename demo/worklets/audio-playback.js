@@ -83,7 +83,16 @@ class AudioPlaybackProcessor extends AudioWorkletProcessor {
     const idx = this._readIdx;
     const frac = this._fracPos;
 
+    // 边界保护：读取位置已超出当前块时，安全前移，避免产生 NaN 静音
+    if (idx >= head.length || head.length === 0) {
+      if (this._queue.length <= 1) return null;
+      this._readIdx -= head.length;
+      this._queue.shift();
+      return this._readInterpolated();
+    }
+
     let a = head[idx];
+    if (!Number.isFinite(a)) a = 0;
     let b;
     if (idx + 1 < head.length) {
       b = head[idx + 1];
@@ -92,7 +101,9 @@ class AudioPlaybackProcessor extends AudioWorkletProcessor {
     } else {
       b = a;
     }
-    return a + (b - a) * frac;
+    if (!Number.isFinite(b)) b = a;
+    const s = a + (b - a) * frac;
+    return Number.isFinite(s) ? s : 0;
   }
 
   /** Advance the read position by `stepRatio`; pop consumed buffers. */
@@ -108,7 +119,9 @@ class AudioPlaybackProcessor extends AudioWorkletProcessor {
     }
   }
 
-  process(_, outputs) {
+  process(inputs, outputs, parameters) {
+    this._processCount = (this._processCount || 0) + 1;
+    this._lastProcessTime = this.currentTime;
     const channels = outputs[0];
     if (!channels || channels.length === 0) return true;
     const out = channels[0];
@@ -161,7 +174,7 @@ class AudioPlaybackProcessor extends AudioWorkletProcessor {
       this._framesSinceStats = 0;
       const queuedSamples = this._queuedSamples();
       const queuedMs = (queuedSamples / this._inputRate) * 1000;
-      this.port.postMessage({ kind: "stats", queuedMs, played: this._totalPlayed });
+      this.port.postMessage({ kind: "stats", queuedMs, played: this._totalPlayed, processCount: this._processCount, lastProcessTime: this._lastProcessTime });
     }
 
     return true;

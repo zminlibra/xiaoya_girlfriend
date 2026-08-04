@@ -530,6 +530,16 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
             self._clear_cached_voice_reference()
             return
 
+        if model_type == "voice_design":
+            # VoiceDesign：把会话 voice（文字描述，如"慵懒磁性的女声"）映射到 instruct，
+            # 由 _process_voice_design 用 instruct 生成音色
+            if session_voice:
+                self.instruct = session_voice
+                self.speaker = None
+                self.ref_audio = None
+                self._clear_cached_voice_reference()
+            return
+
         if self._resolve_audio_path(session_voice) is not None:
             self.ref_audio = session_voice
             self._clear_cached_voice_reference()

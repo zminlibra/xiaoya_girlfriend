@@ -518,7 +518,10 @@ def _build_realtime_pipeline_unit(
     should_listen = Event()
     response_playing = Event()
     cancel_scope = CancelScope()
-    speculative_turns = SpeculativeTurnTracker()
+    # Disabled: the speculative-turn mechanism truncates STT input to the first
+    # ~1.3s of each utterance and drops the rest as "stale". With None the VAD
+    # falls back to one-shot final audio for the whole turn.
+    speculative_turns = None
     recv_audio_chunks_queue: Queue[AudioInItem] = Queue()
     send_audio_chunks_queue: Queue[AudioOutItem] = Queue()
     spoken_prompt_queue: Queue[VADOutItem] = Queue()

@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>赛博女友 · 数字人互动</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; font-family: "PingFang SC", "Microsoft YaHei", sans-serif; }
+
+    #bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(160deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
+    }
+    /* 淡淡的星点 */
+    #bg::before, #bg::after {
+      content: ""; position: absolute; border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+    }
+    #bg::before { width: 3px; height: 3px; top: 18%; left: 22%; box-shadow: 90px 130px 0 rgba(255,255,255,.2), 200px 60px 0 rgba(255,255,255,.1), 300px 200px 0 rgba(255,255,255,.18), 500px 100px 0 rgba(255,255,255,.12), 700px 250px 0 rgba(255,255,255,.15); }
+    #bg::after  { width: 2px; height: 2px; bottom: 20%; right: 18%; box-shadow: -120px -90px 0 rgba(255,255,255,.15), -260px -200px 0 rgba(255,255,255,.1), -420px -50px 0 rgba(255,255,255,.12), -560px -160px 0 rgba(255,255,255,.18); }
+
+    #live2d-canvas { position: fixed; inset: 0; z-index: 1; }
+
+    /* 灵动岛状态栏：状态变化时展开，几秒后缩成胶囊，不同状态颜色不同 */
+    #status {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 4;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(15,23,42,.85); color: #fff; padding: 8px 16px;
+      border-radius: 999px; font-size: 13px; letter-spacing: 1px;
+      border: 1px solid rgba(255,255,255,.15);
+      backdrop-filter: blur(8px); user-select: none;
+      white-space: nowrap; overflow: hidden;
+      transition: all .5s cubic-bezier(.4,0,.2,1);
+      min-height: 36px; max-width: 460px;
+    }
+    #status .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #f59e0b; flex-shrink: 0; transition: background .3s; }
+    #status-text { transition: opacity .3s; }
+    /* 收缩成灵动岛胶囊 */
+    #status.collapsed { padding: 8px; max-width: 36px; border-radius: 50%; }
+    #status.collapsed #status-text { opacity: 0; width: 0; margin: 0; }
+    /* 不同状态颜色 */
+    #status.connected { background: rgba(52,211,153,.92); }
+    #status.connected .dot { background: #0f172a; }
+    #status.speaking { background: rgba(244,114,182,.92); }
+    #status.speaking .dot { background: #fff; animation: pulse 0.6s ease infinite; }
+    #status.thinking { background: rgba(96,165,250,.92); }
+    #status.thinking .dot { background: #fff; animation: pulse 0.6s ease infinite; }
+    #status.error { background: rgba(239,68,68,.92); }
+    #status.error .dot { background: #fff; }
+    @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.5); } }
+
+    /* 对话气泡 */
+    #chat {
+      position: fixed; bottom: 150px; left: 50%; transform: translateX(-50%); z-index: 3;
+      width: min(640px, 92vw); max-height: 200px; overflow-y: auto;
+      display: flex; flex-direction: column; gap: 10px; padding: 6px 4px;
+      scrollbar-width: none;
+      user-select: text; cursor: text; /* 聊天记录可选中复制 */
+    }
+    #chat::-webkit-scrollbar { display: none; }
+
+    .msg {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.6;
+      word-break: break-word;
+      animation: fadeUp .3s ease;
+    }
+
+    /* 用户气泡：粉紫渐变，右下小圆角，柔和光晕 */
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(145deg, #a78bfa, #ec4899);
+      color: #fff;
+      border-bottom-right-radius: 6px;
+      box-shadow: 0 4px 16px rgba(236,72,153,.3), 0 1px 3px rgba(0,0,0,.12);
+    }
+
+    /* 小雅气泡：毛玻璃白底 + 粉紫渐变描边，左下小圆角 */
+    .msg.ai {
+      align-self: flex-start;
+      background: linear-gradient(#ffffffd9, #ffffffd9) padding-box,
+                  linear-gradient(145deg, #c4b5fd, #f9a8d4) border-box;
+      border: 1px solid transparent;
+      color: #1e293b;
+      border-bottom-left-radius: 6px;
+      box-shadow: 0 4px 18px rgba(15,23,42,.12), 0 1px 3px rgba(0,0,0,.06);
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px) scale(.98); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* 小雅气泡左侧的头像角标 */
+    .msg-row.ai {
+      display: flex;
+      align-items: flex-end;
+      gap: 7px;
+      align-self: flex-start;
+      max-width: 88%;
+    }
+    .msg-row.ai .msg.ai {
+      flex: 0 1 auto;
+    }
+    .msg-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 15px;
+      background: radial-gradient(circle at 30% 25%, #fbcfe8, #c084fc 75%);
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 2.5px rgba(244,114,182,.35), 0 4px 12px rgba(236,72,153,.35);
+      user-select: none;
+      animation: avatarBreath 3s ease-in-out infinite;
+    }
+    @keyframes avatarBreath {
+      0%, 100% { box-shadow: 0 0 0 2.5px rgba(244,114,182,.35), 0 4px 12px rgba(236,72,153,.35); }
+      50%      { box-shadow: 0 0 0 4px rgba(244,114,182,.18), 0 4px 18px rgba(236,72,153,.5); }
+    }
+
+    /* 底部控制区：文字输入条 + 正下方大麦克风按钮 */
+    #controls {
+      position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 3;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    #text-bar {
+      display: flex; align-items: center; gap: 8px;
+      background: #0f172a; border-radius: 999px; padding: 6px 6px 6px 18px;
+      border: 1px solid rgba(255,255,255,.18); backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0,0,0,.3);
+    }
+    #text-input {
+      width: min(260px, 52vw); background: transparent; border: none; outline: none;
+      color: #f1f5f9; font-size: 14px;
+    }
+    #text-input::placeholder { color: #64748b; }
+    #send-btn {
+      width: 36px; height: 36px; border-radius: 50%; border: none; cursor: pointer;
+      background: linear-gradient(145deg, #f472b6, #ec4899); color: #fff; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .15s ease, box-shadow .15s ease;
+      box-shadow: 0 3px 12px rgba(236,72,153,.35);
+    }
+    #send-btn:hover { transform: scale(1.1); box-shadow: 0 4px 18px rgba(236,72,153,.5); }
+    #send-btn:active { transform: scale(.95); }
+
+    /* 上传按钮 */
+    #upload-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: none; background: transparent; color: #94a3b8;
+      font-size: 16px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s ease, transform .15s ease;
+    }
+    #upload-btn:hover { background: rgba(167,139,250,.18); transform: scale(1.08); }
+
+    /* 表情按钮 */
+    #emoji-btn {
+      width: 34px; height: 34px; border-radius: 50%;
+      border: none; background: transparent; color: #c084fc;
+      font-size: 17px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s ease, transform .15s ease;
+    }
+    #emoji-btn:hover { background: rgba(167,139,250,.18); transform: scale(1.08); }
+
+    /* 表情面板 */
+    #text-bar { position: relative; }
+    #emoji-panel {
+      position: absolute;
+      bottom: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9;
+      width: 400px;
+      max-height: 330px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      background: rgba(15,23,42,.94);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 14px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.45);
+      scrollbar-width: none;
+    }
+    #emoji-panel::-webkit-scrollbar { display: none; }
+    #emoji-panel.hidden { display: none; }
+    #emoji-tabs {
+      display: flex;
+      gap: 3px;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    #emoji-tabs::-webkit-scrollbar { display: none; }
+    .emoji-tab {
+      background: transparent; border: none; border-radius: 8px;
+      font-size: 16px; cursor: pointer; padding: 4px 6px;
+      color: #e2e8f0; /* 浅色文字，保证颜文字类标签（≧▽≦）在深色面板上清晰 */
+      opacity: .5;
+      transition: opacity .15s ease, background .15s ease;
+      flex-shrink: 0;
+    }
+    .emoji-tab:hover { opacity: 1; background: rgba(255,255,255,.07); }
+    .emoji-tab.active { opacity: 1; background: rgba(244,114,182,.22); }
+    .emoji-grid { display: none; }
+    .emoji-grid.active {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 2px;
+    }
+    .emoji-grid.active[data-cat-body="kaomoji"] {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .emoji-grid.active[data-cat-body="kaomoji"] .emoji-item {
+      font-size: 13px;
+      padding: 4px 2px;
+      white-space: nowrap;
+    }
+    .emoji-item {
+      background: transparent; border: none; border-radius: 8px;
+      font-size: 19px; cursor: pointer; padding: 4px 0;
+      color: #f1f5f9; /* 浅色文字，保证颜文字等字符在深色面板上清晰 */
+      transition: background .12s ease, transform .12s ease;
+    }
+    .emoji-item:hover { background: rgba(244,114,182,.22); transform: scale(1.15); }
+
+    /* 大麦克风按钮：底部正中显眼 */
+    #mic-btn {
+      width: 72px; height: 72px; border-radius: 50%; border: none; cursor: pointer;
+      background: linear-gradient(145deg, #a78bfa, #ec4899); color: #fff;
+      box-shadow: 0 8px 30px rgba(167,139,250,.4), inset 0 -4px 10px rgba(0,0,0,.2);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform .15s ease, box-shadow .15s ease;
+      animation: micIdle 2.5s ease-in-out infinite;
+    }
+    #mic-btn:hover { transform: scale(1.08); box-shadow: 0 10px 36px rgba(167,139,250,.6), inset 0 -4px 10px rgba(0,0,0,.2); }
+    #mic-btn:active { transform: scale(.95); }
+    #mic-btn.recording {
+      background: linear-gradient(145deg, #f87171, #ef4444);
+      animation: micPulse 1.2s ease infinite;
+    }
+    @keyframes micIdle {
+      0%,100% { box-shadow: 0 8px 30px rgba(167,139,250,.4), inset 0 -4px 10px rgba(0,0,0,.2); }
+      50% { box-shadow: 0 8px 36px rgba(167,139,250,.6), inset 0 -4px 10px rgba(0,0,0,.2); }
+    }
+    @keyframes micPulse {
+      0%,100% { box-shadow: 0 0 0 6px rgba(239,68,68,.18), 0 8px 30px rgba(239,68,68,.4); }
+      50% { box-shadow: 0 0 0 16px rgba(239,68,68,.05), 0 8px 30px rgba(239,68,68,.4); }
+    }
+
+    /* 顶部选项面板（收纳形象/声音/语言/语音开关） */
+    /* 顶部按钮组：状态栏下方居中（与状态栏、关闭按钮分开） */
+    #top-buttons {
+      position: fixed; top: 58px; left: 50%; transform: translateX(-50%); z-index: 5;
+      display: flex; gap: 8px;
+    }
+    #toolbar-btn, #settings-btn {
+      padding: 6px 14px; border-radius: 999px;
+      border: 1px solid rgba(244,114,182,.25);
+      background: linear-gradient(145deg, rgba(167,139,250,.16), rgba(236,72,153,.16));
+      color: rgba(248,250,252,.9); font-size: 12px; cursor: pointer;
+      backdrop-filter: blur(6px);
+      transition: background .22s ease, box-shadow .22s ease, transform .15s ease, color .22s ease, border-color .22s ease;
+      box-shadow: 0 2px 8px rgba(236,72,153,.1);
+    }
+    #toolbar-btn:hover, #settings-btn:hover {
+      background: linear-gradient(145deg, rgba(167,139,250,.55), rgba(236,72,153,.55));
+      border-color: rgba(244,114,182,.6);
+      color: #fff;
+      box-shadow: 0 5px 20px rgba(236,72,153,.5);
+      transform: scale(1.07);
+    }
+    #toolbar-panel {
+      position: fixed; top: 92px; left: 50%; transform: translateX(-50%); z-index: 6;
+      display: flex; flex-direction: column; gap: 8px;
+      background: rgba(15,23,42,.92); border: 1px solid rgba(255,255,255,.15);
+      border-radius: 12px; padding: 14px 16px; backdrop-filter: blur(6px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.4);
+    }
+    #toolbar-panel.hidden { display: none; }
+    .tb-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: #e2e8f0; }
+    .tb-label { min-width: 34px; color: #94a3b8; }
+    .tb-item select {
+      padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,.18);
+      background: #0f172a; color: #e2e8f0; font-size: 13px; outline: none;
+    }
+    #toolbar-panel #toggle-voice {
+      padding: 7px 12px; border-radius: 8px; border: 1px solid rgba(244,114,182,.35);
+      background: linear-gradient(145deg, rgba(167,139,250,.25), rgba(236,72,153,.25));
+      color: #f8fafc; font-size: 12px; cursor: pointer;
+      transition: all .2s ease;
+    }
+    #toolbar-panel #toggle-voice:hover {
+      background: linear-gradient(145deg, rgba(167,139,250,.45), rgba(236,72,153,.45));
+    }
+    /* 桌宠透明模式：仅在角色像素区域可拖（系统原生拖动，避免窗口漂移） */
+    body.pet-mode { user-select: none; cursor: default; }
+
+    /* 覆盖角色像素区域的透明拖拽层：用系统原生拖动，不改变窗口大小 */
+    #drag-zone {
+      position: fixed; z-index: 2; display: none;
+      -webkit-app-region: drag; cursor: grab;
+    }
+    body.pet-mode #drag-zone { display: block; }
+    body.pet-mode #drag-zone:active { cursor: grabbing; }
+
+    body.pet-mode button, body.pet-mode select, body.pet-mode input,
+    body.pet-mode textarea, body.pet-mode #chat, body.pet-mode #status,
+    body.pet-mode #pet-close, body.pet-mode #settings-modal,
+    body.pet-mode #settings-modal * { -webkit-app-region: no-drag; }
+
+    /* 关闭按钮（桌宠模式显示，精致圆形+旋转动画） */
+    #pet-close {
+      position: fixed; top: 14px; right: 14px; z-index: 20;
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(15,23,42,.55); color: rgba(255,255,255,.8);
+      border: 1px solid rgba(255,255,255,.15); cursor: pointer; padding: 0;
+      display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(6px);
+      transition: background .15s ease, color .15s ease, transform .15s ease;
+    }
+    #pet-close:hover { background: rgba(220,38,38,.85); color: #fff; transform: rotate(90deg); }
+    body.pet-mode #pet-close { display: flex; }
+
+    /* 桌宠模式：UI 默认淡出，鼠标移动才清晰显示（状态栏灵动岛常驻） */
+    body.pet-mode #chat, body.pet-mode #controls,
+    body.pet-mode #pet-close, body.pet-mode #top-buttons {
+      transition: opacity .35s ease;
+      opacity: .18;
+    }
+    body.pet-mode.ui-active #chat, body.pet-mode.ui-active #controls,
+    body.pet-mode.ui-active #pet-close, body.pet-mode.ui-active #top-buttons {
+      opacity: 1;
+    }
+    /* 输入框聚焦（打字）时，控制区保持不透明，不受淡出影响 */
+    body.pet-mode #controls:focus-within {
+      opacity: 1;
+    }
+
+    /* 桌宠模式：给 UI 加深色实心背景，保证在任何桌面背景下可读（状态栏保持状态色） */
+    body.pet-mode #status {
+      color: #fff;
+      text-shadow: 0 1px 3px rgba(0,0,0,.4);
+      border-color: rgba(255,255,255,.15);
+    }
+    body.pet-mode #character-select, body.pet-mode #voice-select, body.pet-mode #lang-select, body.pet-mode #toggle-voice {
+      background: rgba(15,23,42,.85);
+      color: #f1f5f9;
+      border-color: rgba(255,255,255,.18);
+    }
+    body.pet-mode #character-select option, body.pet-mode #voice-select option, body.pet-mode #lang-select option {
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    body.pet-mode .msg.ai {
+      background: linear-gradient(rgba(255,255,255,.97), rgba(255,255,255,.97)) padding-box,
+                  linear-gradient(145deg, #c4b5fd, #f9a8d4) border-box;
+      border: 1px solid transparent;
+      color: #1e293b;
+      box-shadow: 0 3px 12px rgba(0,0,0,.25);
+    }
+    body.pet-mode .msg.user {
+      background: linear-gradient(145deg, #a78bfa, #ec4899);
+      color: #fff;
+      box-shadow: 0 3px 12px rgba(236,72,153,.35);
+    }
+
+    #character-select, #voice-select, #lang-select {
+      padding: 9px 12px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08); color: #dbe4ff; font-size: 13px;
+      backdrop-filter: blur(4px); cursor: pointer; outline: none; max-width: 180px;
+    }
+    #character-select option, #voice-select option, #lang-select option { background: #1e293b; color: #e2e8f0; }
+
+    .modal { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); backdrop-filter: blur(3px); }
+    .modal.hidden { display: none; }
+    .modal-box { width: min(520px, 92vw); background: #1e293b; border-radius: 16px; padding: 20px 22px; color: #e2e8f0; box-shadow: 0 20px 60px rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.1); }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+    .modal-close { background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; line-height: 1; }
+    .modal-close:hover { color: #f1f5f9; }
+    .modal-tip { color: #94a3b8; font-size: 12px; margin-bottom: 12px; }
+    #persona-input { width: 100%; background: #0f172a; color: #e2e8f0; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.6; resize: vertical; font-family: inherit; }
+    #persona-input:focus { outline: none; border-color: #f472b6; }
+    .modal-row { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+    .btn-primary { padding: 8px 20px; border-radius: 999px; border: none; cursor: pointer; background: linear-gradient(145deg, #f472b6, #ec4899); color: #fff; font-size: 13px; font-weight: 600; }
+    .btn-primary:hover { filter: brightness(1.1); }
+    .evolve-label { color: #94a3b8; font-size: 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+    .personality-state { margin-top: 14px; background: #0f172a; border-radius: 10px; padding: 10px 12px; border: 1px solid rgba(244,114,182,.25); }
+    .personality-state.hidden { display: none; }
+    .ps-title { font-size: 11px; color: #f472b6; font-weight: 600; margin-bottom: 6px; }
+    .ps-text { font-size: 12px; color: #cbd5e1; line-height: 1.6; max-height: 90px; overflow-y: auto; }
+
+    /* 长期记忆管理 */
+    .memory-manage { margin-top: 14px; background: #0f172a; border-radius: 10px; padding: 10px 12px; border: 1px solid rgba(96,165,250,.25); }
+    .mm-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .mm-title { font-size: 11px; color: #60a5fa; font-weight: 600; }
+    .mm-count { font-size: 11px; color: #64748b; }
+    .mm-clear { margin-left: auto; padding: 3px 10px; border-radius: 999px; border: 1px solid rgba(239,68,68,.4); background: rgba(239,68,68,.1); color: #f87171; font-size: 11px; cursor: pointer; }
+    .mm-clear:hover { background: rgba(239,68,68,.2); }
+    .memory-list { max-height: 160px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .memory-item { display: flex; align-items: flex-start; gap: 6px; font-size: 12px; color: #cbd5e1; line-height: 1.5; }
+    .memory-item .mi-del { flex-shrink: 0; background: none; border: none; color: #64748b; font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1.3; }
+    .memory-item .mi-del:hover { color: #ef4444; }
+    .memory-empty { font-size: 12px; color: #475569; }
+
+    #toggle-voice {
+      padding: 10px 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.18); cursor: pointer;
+      background: rgba(255,255,255,.08); color: #dbe4ff; font-size: 13px; backdrop-filter: blur(4px);
+      transition: background .15s ease;
+    }
+    #toggle-voice:hover { background: rgba(255,255,255,.15); }
+
+    #hint {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 3;
+      color: rgba(255,255,255,.5); font-size: 12px; letter-spacing: .5px; user-select: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="bg"></div>
+  <button id="pet-close" title="关闭桌宠">
+    <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+  </button>
+  <div id="drag-zone"></div>
+  <canvas id="live2d-canvas"></canvas>
+
+  <div id="status" class="collapsed"><span class="dot"></span><span id="status-text">正在启动…</span></div>
+  <div id="top-buttons">
+    <button id="toolbar-btn" title="形象/声音/语言设置">🎛 选项</button>
+    <button id="settings-btn" title="角色设定">⚙ 设定</button>
+  </div>
+
+  <!-- 顶部选项面板：收纳形象/声音/语言/语音开关，不挡聊天记录 -->
+  <div id="toolbar-panel" class="hidden">
+    <label class="tb-item"><span class="tb-label">形象</span><select id="character-select" title="选择形象"></select></label>
+    <label class="tb-item"><span class="tb-label">声音</span><select id="voice-select" title="选择声音"></select></label>
+    <label class="tb-item"><span class="tb-label">语言</span><select id="lang-select" title="回复语言">
+      <option value="zh">中文</option>
+      <option value="ja">日本語</option>
+      <option value="en">English</option>
+      <option value="ko">한국어</option>
+    </select></label>
+    <button id="toggle-voice">🔊 语音回复</button>
+  </div>
+
+  <div id="chat"></div>
+  <div id="hint">点 🎤 说话，或在下框打字</div>
+  <div id="controls">
+    <div id="text-bar">
+      <button id="upload-btn" title="上传文件">📎</button>
+      <button id="emoji-btn" title="表情">😊</button>
+      <input id="text-input" type="text" placeholder="打字发给小雅…" autocomplete="off">
+      <input id="file-input" type="file" style="display:none">
+      <button id="send-btn" title="发送">➤</button>
+      <div id="emoji-panel" class="hidden">
+        <div id="emoji-tabs">
+          <button class="emoji-tab active" data-cat="face" title="表情">😊</button>
+          <button class="emoji-tab" data-cat="hand" title="手势">✌️</button>
+          <button class="emoji-tab" data-cat="heart" title="爱心">❤️</button>
+          <button class="emoji-tab" data-cat="sym" title="符号">✨</button>
+          <button class="emoji-tab" data-cat="animal" title="动物">🐱</button>
+          <button class="emoji-tab" data-cat="nature" title="自然">🌸</button>
+          <button class="emoji-tab" data-cat="food" title="食物">🍜</button>
+          <button class="emoji-tab" data-cat="game" title="游戏">🎮</button>
+          <button class="emoji-tab" data-cat="life" title="生活">📱</button>
+          <button class="emoji-tab" data-cat="kaomoji" title="颜文字">≧▽≦</button>
+        </div>
+        <div id="emoji-body">
+          <div class="emoji-grid active" data-cat-body="face">
+            <button class="emoji-item">😊</button><button class="emoji-item">😄</button><button class="emoji-item">😆</button><button class="emoji-item">😂</button><button class="emoji-item">🤣</button><button class="emoji-item">😭</button><button class="emoji-item">😘</button><button class="emoji-item">😍</button>
+            <button class="emoji-item">🥰</button><button class="emoji-item">😜</button><button class="emoji-item">🤪</button><button class="emoji-item">😎</button><button class="emoji-item">🤔</button><button class="emoji-item">😳</button><button class="emoji-item">🥺</button><button class="emoji-item">😢</button>
+            <button class="emoji-item">😤</button><button class="emoji-item">🤗</button><button class="emoji-item">🤩</button><button class="emoji-item">🥳</button><button class="emoji-item">🙃</button><button class="emoji-item">😏</button><button class="emoji-item">😌</button><button class="emoji-item">😉</button>
+            <button class="emoji-item">😇</button><button class="emoji-item">😅</button><button class="emoji-item">🙄</button><button class="emoji-item">😴</button><button class="emoji-item">🤤</button><button class="emoji-item">😱</button><button class="emoji-item">😈</button><button class="emoji-item">👻</button>
+          </div>
+          <div class="emoji-grid" data-cat-body="hand">
+            <button class="emoji-item">👍</button><button class="emoji-item">👎</button><button class="emoji-item">👌</button><button class="emoji-item">✌️</button><button class="emoji-item">🤞</button><button class="emoji-item">🤟</button><button class="emoji-item">👏</button><button class="emoji-item">🙏</button>
+            <button class="emoji-item">🤝</button><button class="emoji-item">💪</button><button class="emoji-item">👋</button><button class="emoji-item">🫶</button><button class="emoji-item">👀</button><button class="emoji-item">🫣</button><button class="emoji-item">🙈</button><button class="emoji-item">💤</button>
+          </div>
+          <div class="emoji-grid" data-cat-body="heart">
+            <button class="emoji-item">❤️</button><button class="emoji-item">🧡</button><button class="emoji-item">💛</button><button class="emoji-item">💚</button><button class="emoji-item">💙</button><button class="emoji-item">💜</button><button class="emoji-item">🖤</button><button class="emoji-item">🤍</button>
+            <button class="emoji-item">💔</button><button class="emoji-item">💕</button><button class="emoji-item">💞</button><button class="emoji-item">💓</button><button class="emoji-item">💗</button><button class="emoji-item">💖</button><button class="emoji-item">💘</button><button class="emoji-item">💝</button>
+          </div>
+          <div class="emoji-grid" data-cat-body="sym">
+            <button class="emoji-item">✨</button><button class="emoji-item">⭐</button><button class="emoji-item">🌟</button><button class="emoji-item">💫</button><button class="emoji-item">🔥</button><button class="emoji-item">🌈</button><button class="emoji-item">🎀</button><button class="emoji-item">🎉</button>
+            <button class="emoji-item">🎂</button><button class="emoji-item">🎁</button><button class="emoji-item">💯</button><button class="emoji-item">💢</button><button class="emoji-item">💥</button><button class="emoji-item">☄️</button><button class="emoji-item">⚡</button><button class="emoji-item">💧</button>
+          </div>
+          <div class="emoji-grid" data-cat-body="animal">
+            <button class="emoji-item">🐱</button><button class="emoji-item">🐶</button><button class="emoji-item">🐰</button><button class="emoji-item">🦊</button><button class="emoji-item">🐼</button><button class="emoji-item">🐻</button><button class="emoji-item">🐨</button><button class="emoji-item">🐯</button>
+            <button class="emoji-item">🦁</button><button class="emoji-item">🐮</button><button class="emoji-item">🐷</button><button class="emoji-item">🐸</button><button class="emoji-item">🐵</button><button class="emoji-item">🐔</button><button class="emoji-item">🐧</button><button class="emoji-item">🐦</button>
+            <button class="emoji-item">🐤</button><button class="emoji-item">🦋</button><button class="emoji-item">🐢</button><button class="emoji-item">🐙</button><button class="emoji-item">🐝</button><button class="emoji-item">🦄</button><button class="emoji-item">🐴</button><button class="emoji-item">🐍</button>
+          </div>
+          <div class="emoji-grid" data-cat-body="nature">
+            <button class="emoji-item">🌸</button><button class="emoji-item">🌹</button><button class="emoji-item">🌻</button><button class="emoji-item">🌼</button><button class="emoji-item">🌷</button><button class="emoji-item">🍀</button><button class="emoji-item">🌿</button><button class="emoji-item">🌙</button>
+            <button class="emoji-item">🌞</button><button class="emoji-item">☀️</button><button class="emoji-item">⛅</button><button class="emoji-item">🌊</button><button class="emoji-item">🍁</button><button class="emoji-item">🌵</button><button class="emoji-item">🌴</button><button class="emoji-item">☁️</button>
+          </div>
+          <div class="emoji-grid" data-cat-body="food">
+            <button class="emoji-item">🍎</button><button class="emoji-item">🍌</button><button class="emoji-item">🍉</button><button class="emoji-item">🍇</button><button class="emoji-item">🍓</button><button class="emoji-item">🍒</button><button class="emoji-item">🍑</button><button class="emoji-item">🥝</button>
+            <button class="emoji-item">🥥</button><button class="emoji-item">🍍</button><button class="emoji-item">🥑</button><button class="emoji-item">🍔</button><button class="emoji-item">🍟</button><button class="emoji-item">🍕</button><button class="emoji-item">🌭</button><button class="emoji-item">🥪</button>
+            <button class="emoji-item">🍜</button><button class="emoji-item">🍚</button><button class="emoji-item">🍙</button><button class="emoji-item">🍣</button><button class="emoji-item">🍤</button><button class="emoji-item">🍦</button><button class="emoji-item">🍰</button><button class="emoji-item">🍭</button>
+            <button class="emoji-item">🍬</button><button class="emoji-item">🍫</button><button class="emoji-item">☕</button><button class="emoji-item">🍵</button><button class="emoji-item">🥤</button><button class="emoji-item">🧋</button><button class="emoji-item">🍺</button><button class="emoji-item">🥂</button>
+          </div>
+          <div class="emoji-grid" data-cat-body="game">
+            <button class="emoji-item">🎮</button><button class="emoji-item">🕹️</button><button class="emoji-item">🎲</button><button class="emoji-item">🎯</button><button class="emoji-item">🎳</button><button class="emoji-item">🎪</button><button class="emoji-item">🎡</button><button class="emoji-item">🎢</button>
+            <button class="emoji-item">🎠</button><button class="emoji-item">🧸</button><button class="emoji-item">🎧</button><button class="emoji-item">🎤</button><button class="emoji-item">🎹</button><button class="emoji-item">🎸</button><button class="emoji-item">🎻</button><button class="emoji-item">🎬</button>
+          </div>
+          <div class="emoji-grid" data-cat-body="life">
+            <button class="emoji-item">📱</button><button class="emoji-item">💻</button><button class="emoji-item">🖥️</button><button class="emoji-item">⌨️</button><button class="emoji-item">🖱️</button><button class="emoji-item">📷</button><button class="emoji-item">🎥</button><button class="emoji-item">📺</button>
+            <button class="emoji-item">🎨</button><button class="emoji-item">🎭</button><button class="emoji-item">💡</button><button class="emoji-item">🔑</button><button class="emoji-item">📚</button><button class="emoji-item">✏️</button><button class="emoji-item">🎒</button><button class="emoji-item">👑</button>
+          </div>
+          <div class="emoji-grid" data-cat-body="kaomoji">
+            <button class="emoji-item">(≧▽≦)</button><button class="emoji-item">(＾▽＾)</button><button class="emoji-item">(￣▽￣)</button><button class="emoji-item">(◕‿◕)</button>
+            <button class="emoji-item">(・∀・)</button><button class="emoji-item">(⊙ω⊙)</button><button class="emoji-item">(T_T)</button><button class="emoji-item">(ToT)</button>
+            <button class="emoji-item">(¬‿¬)</button><button class="emoji-item">(≧ω≦)</button><button class="emoji-item">(◡ ω ◡)</button><button class="emoji-item">(─‿─)</button>
+            <button class="emoji-item">(⌒▽⌒)</button><button class="emoji-item">(๑˃ᴗ˂)ﻭ</button><button class="emoji-item">(✿◠‿◠)</button><button class="emoji-item">(｡♥‿♥｡)</button>
+            <button class="emoji-item">(´･ω･`)</button><button class="emoji-item">(ノ﹏ヽ)</button><button class="emoji-item">(ノ^_^)ノ</button><button class="emoji-item">¯\_(ツ)_/¯</button>
+            <button class="emoji-item">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</button><button class="emoji-item">o(≧▽≦)o</button><button class="emoji-item">┏(＾0＾)┛</button><button class="emoji-item">(╯°□°）╯︵┻━┻</button>
+            <button class="emoji-item">༼ つ ◕_◕ ༽つ</button><button class="emoji-item">ᕙ(⇀‸↼‶)ᕗ</button><button class="emoji-item">( ͡° ͜ʖ ͡°)</button><button class="emoji-item">(づ￣ ³￣)づ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button id="mic-btn" title="说话">
+      <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+    </button>
+  </div>
+
+  <!-- 角色设定弹窗 -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-box">
+      <div class="modal-head">
+        <span>⚙ 角色设定</span>
+        <button id="settings-close" class="modal-close" title="关闭">×</button>
+      </div>
+      <p class="modal-tip">写下她的性格、背景、口头禅……她会按这个设定回应你。</p>
+      <textarea id="persona-input" rows="6" placeholder="例如：你叫小雅，是个温柔又有点小傲娇的女生，喜欢甜品和星空，说话喜欢带可爱语气词，偶尔会撒娇…"></textarea>
+      <div class="modal-row">
+        <button id="persona-save" class="btn-primary">保存设定</button>
+        <label class="evolve-label"><input type="checkbox" id="evolve-toggle" checked> 动态性格（随聊天成长）</label>
+      </div>
+      <div class="modal-row">
+        <label class="evolve-label" style="min-width:56px">角色大小</label>
+        <input type="range" id="scale-slider" min="40" max="250" value="100" style="flex:1;accent-color:#f472b6">
+        <span id="scale-value" style="color:#94a3b8;font-size:12px;min-width:40px;text-align:right">100%</span>
+      </div>
+      <div class="modal-row" id="win-size-row" style="display:none">
+        <label class="evolve-label" style="min-width:56px">窗口大小</label>
+        <input type="range" id="win-slider" min="50" max="200" value="100" style="flex:1;accent-color:#f472b6">
+        <span id="win-value" style="color:#94a3b8;font-size:12px;min-width:40px;text-align:right">100%</span>
+      </div>
+      <div id="personality-state" class="personality-state hidden">
+        <div class="ps-title">当前性格状态（自动演变中）</div>
+        <div id="personality-text" class="ps-text"></div>
+      </div>
+      <div class="memory-manage">
+        <div class="mm-head">
+          <span class="mm-title">长期记忆</span>
+          <span class="mm-count" id="memory-count">0 条</span>
+          <button id="memory-clear" class="mm-clear">清空全部</button>
+        </div>
+        <div id="memory-list" class="memory-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自定义音色描述弹窗 -->
+  <div id="voice-custom-modal" class="modal hidden">
+    <div class="modal-box" style="width:min(500px,92vw)">
+      <div class="modal-head">
+        <span>🎤 自定义音色描述</span>
+        <button id="voice-custom-close" class="modal-close" title="关闭">×</button>
+      </div>
+      <p class="modal-tip">先给音色起个名字，再写一句声音描述。已保存的自定义音色会一直保留，可修改或删除。</p>
+      <input id="voice-custom-name" type="text" placeholder="音色名字（如：慵懒姐姐）" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;font-size:13px;outline:none;margin-bottom:8px">
+      <input id="voice-custom-input" type="text" placeholder="声音描述（如：慵懒性感的成熟女声，带一点沙哑）" style="width:100%;background:#0f172a;color:#e2e8f0;border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;font-size:13px;outline:none">
+      <div class="modal-row">
+        <button id="voice-custom-apply" class="btn-primary">保存音色</button>
+        <button id="voice-custom-cancel-edit" class="mm-clear" style="display:none">取消修改</button>
+      </div>
+      <div id="voice-custom-list" class="memory-list" style="margin-top:12px"></div>
+      <div id="voice-custom-empty" class="memory-empty" style="margin-top:10px">还没有自定义音色，输入描述保存一个吧～</div>
+    </div>
+  </div>
+
+  <script>
+    // 桌宠透明模式：URL 带 ?transparent=1 时隐藏背景，只留角色
+    window.addEventListener('DOMContentLoaded', () => {
+      if (new URLSearchParams(location.search).has('transparent')) {
+        document.documentElement.style.background = 'transparent';
+        document.body.style.background = 'transparent';
+        document.body.classList.add('pet-mode');
+        const bg = document.getElementById('bg');
+        if (bg) bg.style.display = 'none';
+        const hint = document.getElementById('hint');
+        if (hint) hint.style.display = 'none';
+
+        // 关闭按钮（Electron 通过 preload 暴露 window.pet.close；浏览器则直接 close）
+        const closeBtn = document.getElementById('pet-close');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            if (window.pet) window.pet.close();
+            else window.close();
+          });
+        }
+
+        // UI 智能隐藏：鼠标移动时显示，停止 3 秒后淡出
+        let uiTimer = null;
+        const setUiActive = (active) => {
+          document.body.classList.toggle('ui-active', active);
+          clearTimeout(uiTimer);
+          if (active) uiTimer = setTimeout(() => document.body.classList.remove('ui-active'), 3000);
+        };
+        document.addEventListener('mousemove', () => setUiActive(true));
+        document.addEventListener('mouseleave', () => {
+          clearTimeout(uiTimer);
+          document.body.classList.remove('ui-active');
+        });
+        setUiActive(true); // 初始显示，方便操作
+
+        // 文字输入框聚焦/打字时锁定 UI 不淡出，避免看不清输入内容
+        const textInputEl = document.getElementById('text-input');
+        if (textInputEl) {
+          textInputEl.addEventListener('focus', () => {
+            document.body.classList.add('ui-active');
+            clearTimeout(uiTimer);
+          });
+          textInputEl.addEventListener('blur', () => setUiActive(true));
+        }
+      }
+    });
+  </script>
+
+  <script src="lib/pixi.min.js"></script>
+  <script src="lib/live2dcubismcore.min.js"></script>
+  <script src="lib/cubism4.min.js"></script>
+  <script src="app.js?v=20260804q"></script>
+</body>
+</html>

@@ -229,3 +229,13 @@ dmypy.json
 cover/
 .tox/
 uv.lock
+
+# ---------- 本地项目规则 ----------
+# 启动脚本含 API key，不提交
+start-web-admin.ps1
+# 用户上传的文件
+uploads/
+# 临时测试脚本
+test_*.py
+# 前端 Live2D 依赖库需保留（取消上方 lib/ 通用忽略）
+!demo/live2d/lib/
