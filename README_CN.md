@@ -11,23 +11,19 @@
 
 </div>
 
-> ## 🌸 Xiaoya (this fork)
+> ## 🌸 小雅（本分支说明）
 >
-> This repository is a fork of HuggingFace's official [speech-to-speech](https://github.com/huggingface/speech-to-speech),
-> customized for **"Xiaoya"**, a local AI voice girlfriend / desktop pet. Built on top of the official
-> realtime voice-agent pipeline (VAD→STT→LLM→TTS), with these enhancements:
+> 本仓库基于 HuggingFace 官方 [speech-to-speech](https://github.com/huggingface/speech-to-speech) 改造，
+> 为本地 AI 语音女友 **"小雅"** 定制，在官方实时语音 Agent 管线（VAD→STT→LLM→TTS）之上增强了：
 >
-> - **Agent toolchain**: read/write/copy/move files (whole disk), open/close apps, web scraping, content search,
->   Everything full-disk search, read-only commands, clipboard, system info
-> - **VoiceDesign voices**: text-described custom voices + custom voice management (name/edit/delete/persist)
-> - **Vector memory**: Qdrant local vector store + bge Chinese semantic retrieval
-> - **Multi-format document parsing**: PDF / Word / Excel / PPT / image OCR / audio transcription
-> - **File upload + beautiful document generation (docgen)**
-> - **Live2D desktop pet frontend** (Electron transparent pet)
+> - **Agent 工具链**：文件读写/复制/移动（全盘）、打开/关闭应用、网页抓取、内容搜索、Everything 全盘秒搜、只读命令、剪贴板、系统信息
+> - **VoiceDesign 音色**：文字描述定制音色 + 自定义音色管理（命名/编辑/删除/持久化）
+> - **向量记忆**：Qdrant 本地向量库 + bge 中文语义检索，替代固定条数注入
+> - **多格式文档解析**：PDF / Word / Excel / PPT / 图片 OCR / 音频转写
+> - **文件上传 + 美观文档生成（docgen）**
+> - **Live2D 数字人桌宠前端**（Electron 透明桌宠）
 >
-> Upstream: https://github.com/huggingface/speech-to-speech
-
-
+> 上游：https://github.com/huggingface/speech-to-speech
 
 A low-latency, fully modular voice-agent pipeline: **VAD -> STT -> LLM -> TTS**, exposed through an **OpenAI Realtime-compatible WebSocket API**. Every component is swappable. The LLM slot speaks OpenAI-compatible protocols, so you can point it at a hosted provider, at [HF Inference Providers](https://huggingface.co/inference-providers), or at a vLLM or llama.cpp server on your own hardware for a fully local, fully open stack.
 
