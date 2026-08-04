@@ -2,7 +2,7 @@
   <div>&nbsp;</div>
   <img src="https://raw.githubusercontent.com/huggingface/speech-to-speech/main/logo.png" width="600"/>
 
-# Speech To Speech: Build voice agents with open-source models
+# 语音到语音（Speech To Speech）：用开源模型构建语音 Agent
 
 [![PyPI](https://img.shields.io/pypi/v/speech-to-speech)](https://pypi.org/project/speech-to-speech/)
 [![Python](https://img.shields.io/pypi/pyversions/speech-to-speech)](https://pypi.org/project/speech-to-speech/)
@@ -25,19 +25,19 @@
 >
 > 上游：https://github.com/huggingface/speech-to-speech
 
-A low-latency, fully modular voice-agent pipeline: **VAD -> STT -> LLM -> TTS**, exposed through an **OpenAI Realtime-compatible WebSocket API**. Every component is swappable. The LLM slot speaks OpenAI-compatible protocols, so you can point it at a hosted provider, at [HF Inference Providers](https://huggingface.co/inference-providers), or at a vLLM or llama.cpp server on your own hardware for a fully local, fully open stack.
+这是一个低延迟、完全模块化的语音 Agent 管线：**VAD → STT → LLM → TTS**，通过 **OpenAI Realtime 兼容的 WebSocket API** 对外暴露。每个组件都可以替换。LLM 槽位支持 OpenAI 兼容协议，因此可以指向托管服务商、[HF Inference Providers](https://huggingface.co/inference-providers)，或你自有硬件上的 vLLM / llama.cpp 服务器，实现完全本地、完全开源的堆栈。
 
-This pipeline runs in production as the conversation backend for thousands of [Reachy Mini](https://huggingface.co/blog/reachy-mini) robots.
+该管线已在生产环境中作为数千台 [Reachy Mini](https://huggingface.co/blog/reachy-mini) 机器人的对话后端运行。
 
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./docs/assets/endpoint-swap-dark.gif">
     <source media="(prefers-color-scheme: light)" srcset="./docs/assets/endpoint-swap-light.gif">
-    <img src="./docs/assets/endpoint-swap-light.gif" alt="Switching an OpenAI Realtime client endpoint from hosted OpenAI to a self-hosted speech-to-speech server" width="640">
+    <img src="./docs/assets/endpoint-swap-light.gif" alt="把 OpenAI Realtime 客户端端点从托管 OpenAI 切换到自托管 speech-to-speech 服务器" width="640">
   </picture>
 </p>
 
-## Quickstart
+## 快速开始（Quickstart）
 
 ```bash
 pip install speech-to-speech
@@ -45,21 +45,21 @@ export OPENAI_API_KEY=...
 speech-to-speech
 ```
 
-This starts an OpenAI Realtime-compatible server at `ws://localhost:8765/v1/realtime` using Parakeet TDT for local STT, an OpenAI-compatible LLM, and Qwen3-TTS for local speech output.
+这会在 `ws://localhost:8765/v1/realtime` 启动一个 OpenAI Realtime 兼容服务器，使用 Parakeet TDT 做本地语音识别、OpenAI 兼容 LLM、Qwen3-TTS 做本地语音输出。
 
-From a source checkout, talk to it from a second terminal:
+从源码目录出发，在另一个终端跟它对话：
 
 ```bash
 python scripts/listen_and_play_realtime.py --host 127.0.0.1 --port 8765
 ```
 
-Prefer to keep the LLM on your own machine? Serve Gemma 4 with llama.cpp:
+想完全在本地跑 LLM？用 llama.cpp 启动 Gemma 4：
 
 ```bash
 llama-server -hf ggml-org/gemma-4-E4B-it-GGUF -np 2 -c 65536 -fa on --swa-full
 ```
 
-Then point the OpenAI-compatible LLM backend at it:
+然后把 OpenAI 兼容 LLM 后端指向它：
 
 ```bash
 speech-to-speech \
@@ -68,54 +68,54 @@ speech-to-speech \
     --responses_api_api_key ""
 ```
 
-Any OpenAI Realtime-compatible client can connect. See [Realtime API](#realtime-api) for the protocol and [LLM backends](#llm-backends) for provider and local-server options.
+任何 OpenAI Realtime 兼容客户端都可以连接。协议细节见 [Realtime API](#realtime-api)，服务商与本地服务器选项见 [LLM 后端](#llm-backends)。
 
-## Index
+## 目录
 
-* [How it works](#how-it-works)
-* [Installation](#installation)
-* [Supported components](#supported-components)
-* [Run modes](#run-modes)
+* [工作原理](#工作原理)
+* [安装](#安装)
+* [支持的组件](#支持的组件)
+* [运行模式](#运行模式)
 * [Realtime API](#realtime-api)
-* [LLM backends](#llm-backends)
-* [Multi-language support](#multi-language-support)
+* [LLM 后端](#llm-backends)
+* [多语言支持](#多语言支持)
 * [Pocket TTS](#pocket-tts)
-* [CLI reference](#cli-reference)
-* [Contributing](#contributing)
-* [Star history](#star-history)
-* [Citations](#citations)
+* [CLI 参考](#cli-参考)
+* [参与贡献](#参与贡献)
+* [Star 历史](#star-历史)
+* [引用](#引用)
 
-## How it works
+## 工作原理
 
-The pipeline is a cascade of four components, each running in its own thread and connected by queues:
+管线由四个组件级联组成，每个组件在独立线程中运行，通过队列连接：
 
-1. **Voice Activity Detection (VAD)**: [Silero VAD v5](https://github.com/snakers4/silero-vad) detects speech boundaries and turn-taking.
-2. **Speech to Text (STT)**: transcribes the user's turn, with optional live partial transcripts.
-3. **Language Model (LLM)**: generates the response, streaming text and tool calls.
-4. **Text to Speech (TTS)**: synthesizes audio and streams it back to the client.
+1. **语音活动检测（VAD）**：[Silero VAD v5](https://github.com/snakers4/silero-vad) 检测语音边界与说话轮次。
+2. **语音转文字（STT）**：转录用户的话轮，支持可选的实时部分转录。
+3. **语言模型（LLM）**：生成回复，流式输出文本与工具调用。
+4. **文字转语音（TTS）**：合成音频并流式返回给客户端。
 
-Every stage has multiple interchangeable backends, selected via CLI flags. The code is designed for easy modification, with a focus on models available through Transformers and the Hugging Face Hub.
+每个阶段都有多种可互换的后端，通过 CLI 参数选择。代码设计易于修改，重点关注可通过 Transformers 和 Hugging Face Hub 获得的模型。
 
-## Installation
+## 安装
 
-Requires Python 3.10+.
+要求 Python 3.10+。
 
 ```bash
 pip install speech-to-speech
 ```
 
-The default install covers the standard realtime path:
+默认安装覆盖标准实时路径：
 
-- Parakeet TDT for STT
-- OpenAI-compatible API for the language model
-- Qwen3-TTS for speech output, using the GGML backend by default on non-macOS platforms and `mlx-audio` on Apple Silicon
-- local audio and realtime server modes
+- Parakeet TDT 做语音识别
+- OpenAI 兼容 API 做语言模型
+- Qwen3-TTS 做语音输出（非 macOS 平台默认用 GGML 后端，Apple Silicon 用 `mlx-audio`）
+- 本地音频与实时服务器模式
 
-macOS and non-macOS dependencies are resolved automatically via platform markers in `pyproject.toml`.
+macOS 与非 macOS 的依赖通过 `pyproject.toml` 中的平台标记自动解析。
 
-### CUDA Note for Qwen3-TTS
+### Qwen3-TTS 的 CUDA 说明
 
-On Linux, the Qwen3-TTS GGML backend comes from `faster-qwen3-tts[ggml]`. Its default `qwentts-cpp-python` wheel on PyPI targets CUDA 12.8. If your machine does not have the CUDA 12 runtime that wheel expects, install the matching wheel from the Hugging Face wheelhouse before installing `speech-to-speech`:
+在 Linux 上，Qwen3-TTS 的 GGML 后端来自 `faster-qwen3-tts[ggml]`。它在 PyPI 上的默认 `qwentts-cpp-python` wheel 面向 CUDA 12.8。如果你的机器没有该 wheel 所要求的 CUDA 12 运行时，请在安装 `speech-to-speech` 之前，从 Hugging Face wheelhouse 安装匹配的 wheel：
 
 ```bash
 # CUDA 13.x
@@ -126,35 +126,35 @@ pip install "qwentts-cpp-python==0.3.1+cu130" \
 pip install "qwentts-cpp-python==0.3.1+cu124" \
   -f https://huggingface.co/datasets/andito/qwentts-cpp-python-wheels/tree/main/whl/cu124
 
-# CPU-only fallback
+# 仅 CPU 兜底
 pip install "qwentts-cpp-python==0.3.1+cpu" \
   -f https://huggingface.co/datasets/andito/qwentts-cpp-python-wheels/tree/main/whl/cpu
 
 pip install speech-to-speech
 ```
 
-To use the previous CUDA-graphs implementation instead of GGML, pass `--qwen3_tts_backend torch`.
+如果想使用之前的 CUDA-graphs 实现而不是 GGML，传 `--qwen3_tts_backend torch`。
 
-### Optional Backends
+### 可选后端（Optional Backends）
 
-Extra backends are installed with pip extras:
+额外后端通过 pip extras 安装：
 
 ```bash
-pip install "speech-to-speech[kokoro]"          # Kokoro-82M TTS on non-macOS
+pip install "speech-to-speech[kokoro]"          # 非 macOS 上的 Kokoro-82M TTS
 pip install "speech-to-speech[pocket]"          # Pocket TTS
 pip install "speech-to-speech[chattts]"         # ChatTTS
 pip install "speech-to-speech[facebook-mms]"    # MMS TTS
 pip install "speech-to-speech[faster-whisper]"  # Faster Whisper STT
-pip install "speech-to-speech[whisper-mlx]"     # Lightning Whisper MLX STT on macOS
-pip install "speech-to-speech[paraformer]"      # Paraformer STT through FunASR
-pip install "speech-to-speech[mlx-lm]"          # mlx-vlm support for vision models on macOS
+pip install "speech-to-speech[whisper-mlx]"     # macOS 上的 Lightning Whisper MLX STT
+pip install "speech-to-speech[paraformer]"      # 通过 FunASR 的 Paraformer STT
+pip install "speech-to-speech[mlx-lm]"          # macOS 上支持视觉模型的 mlx-vlm
 ```
 
-Deprecated implementations, including MeloTTS, live in [`archive/`](./archive) and are no longer wired into the CLI.
+已废弃的实现（包括 MeloTTS）位于 [`archive/`](./archive)，不再接入 CLI。
 
-**Note on DeepFilterNet:** DeepFilterNet, used for optional audio enhancement in VAD, requires `numpy<2` and conflicts with Pocket TTS, which requires `numpy>=2`. Install it manually only in environments where you are not using Pocket TTS.
+**关于 DeepFilterNet 的说明：** DeepFilterNet 用于 VAD 中可选的音频增强，要求 `numpy<2`，与要求 `numpy>=2` 的 Pocket TTS 冲突。请只在你不使用 Pocket TTS 的环境中手动安装。
 
-### From Source
+### 从源码安装
 
 ```bash
 git clone https://github.com/huggingface/speech-to-speech.git
@@ -162,47 +162,47 @@ cd speech-to-speech
 uv sync
 ```
 
-This installs the package in editable mode and makes the `speech-to-speech` CLI available.
+这会以可编辑模式安装包，并提供 `speech-to-speech` CLI。
 
-## Supported Components
+## 支持的组件
 
-| Component | Backend | Platforms | Install |
+| 组件 | 后端 | 平台 | 安装方式 |
 |---|---|---|---|
-| VAD | [Silero VAD v5](https://github.com/snakers4/silero-vad) | all | built-in |
-| STT | [Parakeet TDT](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3) (default) | CUDA / CPU through nano-parakeet, Apple Silicon through MLX | built-in |
-| STT | [Whisper](https://huggingface.co/docs/transformers/en/model_doc/whisper) through Transformers | CUDA / CPU | built-in |
+| VAD | [Silero VAD v5](https://github.com/snakers4/silero-vad) | 全部 | 内置 |
+| STT | [Parakeet TDT](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3)（默认） | CUDA / CPU（nano-parakeet）、Apple Silicon（MLX） | 内置 |
+| STT | 通过 Transformers 的 [Whisper](https://huggingface.co/docs/transformers/en/model_doc/whisper) | CUDA / CPU | 内置 |
 | STT | [Faster Whisper](https://github.com/SYSTRAN/faster-whisper) | CUDA / CPU | `faster-whisper` |
 | STT | [Lightning Whisper MLX](https://github.com/mustafaaljadery/lightning-whisper-mlx) | Apple Silicon | `whisper-mlx` |
-| STT | [MLX Audio Whisper](https://github.com/huggingface/mlx-audio) | Apple Silicon | built-in on macOS |
+| STT | [MLX Audio Whisper](https://github.com/huggingface/mlx-audio) | Apple Silicon | macOS 内置 |
 | STT | [Paraformer](https://github.com/modelscope/FunASR) | CUDA / CPU | `paraformer` |
-| LLM | OpenAI-compatible API (`responses-api`, `chat-completions`) | hosted providers or self-hosted servers | built-in |
-| LLM | [Transformers](https://huggingface.co/models?pipeline_tag=text-generation&sort=trending) | CUDA / CPU | built-in |
-| LLM | [mlx-lm](https://github.com/ml-explore/mlx-lm) | Apple Silicon | built-in on macOS |
-| TTS | [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice) (default) | GGML / CUDA on Linux, mlx-audio on macOS | built-in |
-| TTS | [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | CUDA / CPU, Apple Silicon | `kokoro` on non-macOS; built-in on macOS |
+| LLM | OpenAI 兼容 API（`responses-api`、`chat-completions`） | 托管服务或自托管服务器 | 内置 |
+| LLM | [Transformers](https://huggingface.co/models?pipeline_tag=text-generation&sort=trending) | CUDA / CPU | 内置 |
+| LLM | [mlx-lm](https://github.com/ml-explore/mlx-lm) | Apple Silicon | macOS 内置 |
+| TTS | [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice)（默认） | Linux 上 GGML / CUDA、macOS 上 mlx-audio | 内置 |
+| TTS | [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) | CUDA / CPU、Apple Silicon | 非 macOS 用 `kokoro`；macOS 内置 |
 | TTS | [Pocket TTS](https://github.com/kyutai-labs/pocket-tts) | CPU / CUDA | `pocket` |
 | TTS | [ChatTTS](https://github.com/2noise/ChatTTS) | CUDA / CPU | `chattts` |
 | TTS | [MMS TTS](https://huggingface.co/docs/transformers/model_doc/mms) | CUDA / CPU | `facebook-mms` |
 
-Select implementations with `--stt`, `--llm_backend`, and `--tts`. Run `speech-to-speech -h` for exact values and backend-specific flags.
+用 `--stt`、`--llm_backend` 和 `--tts` 选择实现。运行 `speech-to-speech -h` 查看具体取值和后端专属参数。
 
-## Run Modes
+## 运行模式
 
-| Mode | Transport | Use it when |
+| 模式 | 传输方式 | 适用场景 |
 |---|---|---|
-| `realtime` (default) | OpenAI Realtime protocol over WebSocket or WebRTC | You are building an app or device against a standard voice API. |
-| `local` | Your machine's microphone and speakers | You want to talk to the pipeline directly, no client needed. |
-| `raw-websocket` | Raw PCM over WebSocket | You want a minimal custom client without the Realtime protocol. |
-| `socket` | Raw PCM over TCP | Models run on a remote server, with a simple microphone/playback client. |
+| `realtime`（默认） | 通过 WebSocket 或 WebRTC 的 OpenAI Realtime 协议 | 你在基于标准语音 API 构建应用或设备。 |
+| `local` | 本机麦克风与扬声器 | 你想直接跟管线对话，无需客户端。 |
+| `raw-websocket` | 通过 WebSocket 的原始 PCM | 你想要一个不使用 Realtime 协议的最小自定义客户端。 |
+| `socket` | 通过 TCP 的原始 PCM | 模型跑在远程服务器，配合简单的麦克风/播放客户端。 |
 
-### Realtime Server
+### 实时服务器（Realtime Server）
 
 ```bash
 export OPENAI_API_KEY=...
 speech-to-speech
 ```
 
-This is equivalent to:
+这等价于：
 
 ```bash
 speech-to-speech \
@@ -223,15 +223,15 @@ speech-to-speech \
     --mode realtime
 ```
 
-The default model is `gpt-5.4-mini` through the OpenAI Responses API. Override it with `--model_name`, and set `--responses_api_base_url` for another OpenAI-compatible provider or server.
+默认模型是通过 OpenAI Responses API 的 `gpt-5.4-mini`。用 `--model_name` 覆盖，用 `--responses_api_base_url` 指定其他 OpenAI 兼容服务商或服务器。
 
-### Local Mac
+### 本地 Mac
 
 ```bash
 speech-to-speech --local_mac_optimal_settings
 ```
 
-Optionally with a specific LLM:
+可选地指定某个 LLM：
 
 ```bash
 speech-to-speech \
@@ -239,17 +239,17 @@ speech-to-speech \
     --model_name mlx-community/Qwen3-4B-Instruct-2507-bf16
 ```
 
-This setting:
+该设置会：
 
-- Adds `--device mps` to use MPS for all models.
-- Sets Parakeet TDT for STT.
-- Sets MLX LM as the LLM backend.
-- Sets Qwen3-TTS for TTS, using `mlx-audio` with the `6bit` MLX variant by default.
-- Sets `--mode local`.
+- 加 `--device mps`，让所有模型使用 MPS。
+- STT 用 Parakeet TDT。
+- LLM 后端用 MLX LM。
+- TTS 用 Qwen3-TTS，默认用 `mlx-audio` 的 `6bit` MLX 变体。
+- 设置 `--mode local`。
 
-`--tts pocket` and `--tts kokoro` are also valid on macOS.
+`--tts pocket` 和 `--tts kokoro` 在 macOS 上也有效。
 
-To compare the MLX quantization variants locally:
+本地对比 MLX 量化变体：
 
 ```bash
 python scripts/benchmark_tts.py \
@@ -258,45 +258,45 @@ python scripts/benchmark_tts.py \
     --qwen3_mlx_quantizations bf16 4bit 6bit 8bit
 ```
 
-### Raw WebSocket
+### 原始 WebSocket（Raw WebSocket）
 
-1. Run the pipeline in raw WebSocket mode:
+1. 以原始 WebSocket 模式运行管线：
 
    ```bash
    speech-to-speech --mode raw-websocket --ws_host 0.0.0.0 --ws_port 8765
    ```
 
-2. Connect from your client at `ws://<server-ip>:8765`. Send raw audio bytes as 16 kHz, int16, mono PCM and receive generated audio bytes back.
+2. 从你的客户端连接到 `ws://<服务器IP>:8765`。发送 16 kHz、int16、单声道 PCM 原始音频字节，接收生成的音频字节。
 
 ### TCP Socket
 
-TCP socket mode is intentionally minimal. It streams raw PCM audio, but does not provide the full Realtime API feature set, including interruption handling, live transcript events, or tool-call events.
+TCP socket 模式刻意保持最小化。它流式传输原始 PCM 音频，但不提供完整 Realtime API 功能集（包括打断处理、实时转录事件、工具调用事件）。
 
-1. Run the pipeline on the server:
+1. 在服务器上运行管线：
 
    ```bash
    speech-to-speech --mode socket --recv_host 0.0.0.0 --send_host 0.0.0.0
    ```
 
-2. Run the client locally to handle microphone input and playback:
+2. 在本地运行客户端处理麦克风输入与播放：
 
    ```bash
-   python scripts/listen_and_play.py --host <IP address of your server>
+   python scripts/listen_and_play.py --host <你的服务器IP>
    ```
 
 ### Docker
 
-Install the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html), then:
+安装 [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)，然后：
 
 ```bash
 docker compose up
 ```
 
-The compose file starts a llama.cpp server with Gemma 4, starts the TCP socket server, and exposes ports `8080`, `12345`, and `12346`.
+compose 文件会启动一个带 Gemma 4 的 llama.cpp 服务器，启动 TCP socket 服务器，并暴露端口 `8080`、`12345`、`12346`。
 
 ## Realtime API
 
-Realtime mode supports the OpenAI Realtime protocol over WebSocket and WebRTC, with live transcription and low-latency turn-taking. WebSocket clients connect at `/v1/realtime`:
+Realtime 模式支持通过 WebSocket 和 WebRTC 使用 OpenAI Realtime 协议，带实时转录和低延迟说话轮次。WebSocket 客户端连接到 `/v1/realtime`：
 
 ```python
 from openai import OpenAI
@@ -330,55 +330,55 @@ with client.realtime.connect(model="local") as conn:
         print(event.type)
 ```
 
-The server implements the core Realtime event set: `input_audio_buffer.append`, `session.update`, `conversation.item.create`, `response.create`, and `response.cancel` inbound; speech start/stop, streaming transcription, audio deltas, tool calls, and `response.done` outbound. The full event reference, architecture, and design details live in the [Realtime Engine README](./src/speech_to_speech/api/openai_realtime/README.md).
+服务器实现了核心 Realtime 事件集：入站 `input_audio_buffer.append`、`session.update`、`conversation.item.create`、`response.create`、`response.cancel`；出站语音开始/结束、流式转录、音频增量、工具调用、`response.done`。完整的事件参考、架构与设计细节见 [Realtime Engine README](./src/speech_to_speech/api/openai_realtime/README.md)。
 
-### LLM Proxy
+### LLM 代理（LLM Proxy）
 
-With `--enable_llm_proxy`, the realtime server also exposes the remote LLM it is configured with as a plain OpenAI compatible endpoint, so a client can run side tasks (summaries, titles, background agents) with tools and streaming, fully concurrent with the voice conversation and never interrupted by new speech:
+使用 `--enable_llm_proxy` 时，实时服务器还会把其配置的远程 LLM 暴露为普通的 OpenAI 兼容端点，这样客户端可以运行侧任务（摘要、标题、后台 Agent），支持工具与流式，且与语音对话完全并发、不会被新语音打断：
 
-* `POST /v1/chat/completions` when running `--llm_backend chat-completions`
-* `POST /v1/responses` when running `--llm_backend responses-api`
+* 运行 `--llm_backend chat-completions` 时提供 `POST /v1/chat/completions`
+* 运行 `--llm_backend responses-api` 时提供 `POST /v1/responses`
 
-The server performs no authentication and no throttling of its own. Enable the proxy only on a trusted network, or deploy the server behind a gateway that owns access control. The s2s-endpoint compute replica is such a gateway: it opens these paths only to clients that created their session with an HF token, checks the API key against that token, and applies a rate limit per user. Point the stock OpenAI SDK at whichever host you talk to; this server ignores the API key (a gateway in front decides what it must be):
+服务器本身不做认证、不限流。只在可信网络上启用代理，或把服务器部署在负责访问控制的前端网关后面。s2s 端点的 compute 副本就是这样的网关：只对用 HF token 创建会话的客户端开放这些路径，用该 token 校验 API key，并按用户限流。把标准 OpenAI SDK 指向你连接的主机即可；本服务器忽略 API key（由前端网关决定它应该是什么）：
 
 ```python
 from openai import OpenAI
 
 llm = OpenAI(base_url="http://localhost:8765/v1", api_key="unused")
 completion = llm.chat.completions.create(
-    model="anything",  # ignored: the server forces its configured --model_name
+    model="anything",  # 被忽略：服务器强制用自己配置的 --model_name
     messages=[{"role": "user", "content": "Summarize the conversation so far: ..."}],
 )
 ```
 
-Requests are stateless (send the full message list each time) and are proxied to the configured upstream with the key held by the server, which never reaches clients. The `model` field is always overwritten with the server configured `--model_name`. The proxy is off by default, requires a remote backend (`chat-completions` or `responses-api`), and answers 501 with the reason otherwise.
+请求是无状态的（每次发送完整消息列表），会代理到配置的上游，key 由服务器持有、绝不会到达客户端。`model` 字段总是被覆盖为服务器配置的 `--model_name`。代理默认关闭，需要远程后端（`chat-completions` 或 `responses-api`），否则返回 501 及原因。
 
-## LLM Backends
+## LLM 后端
 
-The LLM is the most compute-intensive and highest-latency component in the pipeline. A single forward pass through a large model can dominate end-to-end response time, so choosing the right backend for your hardware and latency budget matters. The pipeline supports:
+LLM 是管线中计算最密集、延迟最高的组件。大模型的一次前向传播可能主导端到端响应时间，所以根据你的硬件和延迟预算选择正确的后端很重要。管线支持：
 
-- **Local inference**: `transformers` on CUDA / CPU and `mlx-lm` on Apple Silicon.
-- **Self-hosted servers**: `responses-api` and `chat-completions` can point at a local [vLLM](https://github.com/vllm-project/vllm) or [llama.cpp](https://github.com/ggerganov/llama.cpp) server.
-- **Provider APIs**: the same backends work with OpenAI, [HF Inference Providers](https://huggingface.co/inference-providers), [OpenRouter](https://openrouter.ai), and other OpenAI-compatible providers.
+- **本地推理**：CUDA / CPU 上的 `transformers` 和 Apple Silicon 上的 `mlx-lm`。
+- **自托管服务器**：`responses-api` 和 `chat-completions` 可以指向本地 [vLLM](https://github.com/vllm-project/vllm) 或 [llama.cpp](https://github.com/ggerganov/llama.cpp) 服务器。
+- **服务商 API**：同一批后端也支持 OpenAI、[HF Inference Providers](https://huggingface.co/inference-providers)、[OpenRouter](https://openrouter.ai) 等 OpenAI 兼容服务商。
 
-Two API backends are available, sharing the same `--responses_api_*` connection flags:
+有两个 API 后端可用，共用同一套 `--responses_api_*` 连接参数：
 
-- `--llm_backend responses-api` (default) targets `/v1/responses`.
-- `--llm_backend chat-completions` targets `/v1/chat/completions`.
+- `--llm_backend responses-api`（默认）指向 `/v1/responses`。
+- `--llm_backend chat-completions` 指向 `/v1/chat/completions`。
 
-The examples below pair Parakeet TDT for local STT and Qwen3-TTS for local TTS with different LLM backends.
+下面的示例把 Parakeet TDT（本地 STT）和 Qwen3-TTS（本地 TTS）与不同 LLM 后端组合。
 
-### Responses API Backend
+### Responses API 后端
 
-Works with any provider or server that implements the OpenAI Responses API. Point `--responses_api_base_url` at the endpoint and set `--model_name` accordingly:
+适用于任何实现 OpenAI Responses API 的服务商或服务器。把 `--responses_api_base_url` 指向端点，并按需设置 `--model_name`：
 
-| Provider / server | `--responses_api_base_url` | `--responses_api_api_key` |
+| 服务商 / 服务器 | `--responses_api_base_url` | `--responses_api_api_key` |
 |---|---|---|
-| OpenAI | omit, uses OpenAI default | `$OPENAI_API_KEY` |
+| OpenAI | 省略，用 OpenAI 默认 | `$OPENAI_API_KEY` |
 | HF Inference Providers | `https://router.huggingface.co/v1` | `$HF_TOKEN` |
 | OpenRouter | `https://openrouter.ai/api/v1` | `$OPENROUTER_API_KEY` |
-| vLLM | `http://localhost:8000/v1` | omit or any string |
-| llama.cpp | `http://127.0.0.1:8080/v1` | empty string |
+| vLLM | `http://localhost:8000/v1` | 省略或任意字符串 |
+| llama.cpp | `http://127.0.0.1:8080/v1` | 空字符串 |
 
 ```bash
 # OpenAI
@@ -395,7 +395,7 @@ speech-to-speech \
 ```
 
 ```bash
-# HF Inference Providers: Qwen3.5-9B via Together
+# HF Inference Providers：通过 Together 的 Qwen3.5-9B
 speech-to-speech \
     --mode local \
     --stt parakeet-tdt \
@@ -410,7 +410,7 @@ speech-to-speech \
 ```
 
 ```bash
-# HF Inference Providers: GPT-oss-20B via Groq
+# HF Inference Providers：通过 Groq 的 GPT-oss-20B
 speech-to-speech \
     --stt parakeet-tdt \
     --llm_backend responses-api \
@@ -423,17 +423,17 @@ speech-to-speech \
     --enable_live_transcription
 ```
 
-### Chat Completions Backend
+### Chat Completions 后端
 
-Identical configuration to `responses-api`, reusing the same `--responses_api_*` connection flags, but talks to `/v1/chat/completions` instead of `/v1/responses`. Prefer it when:
+与 `responses-api` 配置相同，复用同一套 `--responses_api_*` 连接参数，但访问 `/v1/chat/completions` 而不是 `/v1/responses`。在以下情况优先使用它：
 
-- the provider ignores `chat_template_kwargs.enable_thinking` on the Responses path and needs a `reasoning_effort` knob to suppress reasoning, or
-- the server's Responses streaming tool-call path is unreliable, while its Chat Completions tool-call streaming is solid. This is useful for some vLLM builds; see [#312](https://github.com/huggingface/speech-to-speech/issues/312).
+- 服务商在 Responses 路径上忽略 `chat_template_kwargs.enable_thinking`，需要一个 `reasoning_effort` 旋钮来抑制推理，或
+- 服务器的 Responses 流式工具调用路径不可靠，而 Chat Completions 的流式工具调用很稳定。某些 vLLM 构建有此问题；见 [#312](https://github.com/huggingface/speech-to-speech/issues/312)。
 
-Add `--responses_api_reasoning_effort none` to disable reasoning on providers where the chat-template flag has no effect:
+在 chat-template 标志无效的服务商上，加 `--responses_api_reasoning_effort none` 可禁用推理：
 
 ```bash
-# vLLM serving a Qwen model with tool calling
+# 带工具调用的 vLLM 服务 Qwen 模型
 speech-to-speech \
     --mode realtime \
     --stt parakeet-tdt \
@@ -445,7 +445,7 @@ speech-to-speech \
 ```
 
 ```bash
-# Gemma 4 31B via the HF router on Cerebras, with reasoning disabled for low voice latency
+# 通过 Cerebras 上的 HF router 服务 Gemma 4 31B，为低语音延迟禁用推理
 speech-to-speech \
     --mode realtime \
     --stt parakeet-tdt \
@@ -458,17 +458,17 @@ speech-to-speech \
     --responses_api_stream
 ```
 
-### Fully Local
+### 完全本地
 
-Run the LLM in a separate llama.cpp process for the lowest-friction fully local setup, as shown in the [Reachy Mini local conversation guide](https://huggingface.co/blog/local-reachy-mini-conversation):
+在单独的 llama.cpp 进程中运行 LLM，可获得摩擦最小的完全本地设置，如 [Reachy Mini 本地对话指南](https://huggingface.co/blog/local-reachy-mini-conversation) 所示：
 
 ```bash
-# Terminal 1: llama.cpp serving Gemma 4
+# 终端 1：llama.cpp 服务 Gemma 4
 llama-server -hf ggml-org/gemma-4-E4B-it-GGUF -np 2 -c 65536 -fa on --swa-full
 ```
 
 ```bash
-# Terminal 2: speech-to-speech using that local LLM server
+# 终端 2：使用该本地 LLM 服务器的 speech-to-speech
 speech-to-speech \
     --mode realtime \
     --stt parakeet-tdt \
@@ -481,28 +481,28 @@ speech-to-speech \
     --enable_live_transcription
 ```
 
-You can use `--mode local` instead of `--mode realtime` when you want to talk through the machine running the server directly. In-process local backends are still available with `--llm_backend mlx-lm` on Apple Silicon or `--llm_backend transformers` on CUDA / CPU.
+当你希望通过运行服务器的机器直接对话时，可以用 `--mode local` 代替 `--mode realtime`。进程内本地后端仍可通过 Apple Silicon 上的 `--llm_backend mlx-lm` 或 CUDA / CPU 上的 `--llm_backend transformers` 使用。
 
-## Multi-Language Support
+## 多语言支持
 
-Language coverage depends on the STT and TTS backends you pick, not on the pipeline itself:
+语言覆盖取决于你选择的 STT 和 TTS 后端，而不是管线本身：
 
-| Component | Backend | Languages |
+| 组件 | 后端 | 语言 |
 |---|---|---|
-| STT | Parakeet TDT (default) | 25 European languages |
-| STT | Whisper / Whisper MLX / Faster Whisper | Broad multilingual coverage, depending on the selected Whisper checkpoint |
-| STT | Paraformer | Depends on the selected FunASR checkpoint; the default is Chinese-oriented |
-| TTS | Qwen3-TTS (default) | Multilingual, with `--qwen3_tts_language auto` by default |
-| TTS | Kokoro | Multiple language/voice mappings, depending on backend availability |
-| TTS | ChatTTS | English and Chinese |
-| TTS | MMS TTS | Broad multilingual coverage through MMS checkpoints |
+| STT | Parakeet TDT（默认） | 25 种欧洲语言 |
+| STT | Whisper / Whisper MLX / Faster Whisper | 广泛的多语言覆盖，取决于所选 Whisper 检查点 |
+| STT | Paraformer | 取决于所选 FunASR 检查点；默认为中文 |
+| TTS | Qwen3-TTS（默认） | 多语言，默认 `--qwen3_tts_language auto` |
+| TTS | Kokoro | 多种语言/音色映射，取决于后端可用性 |
+| TTS | ChatTTS | 英语和中文 |
+| TTS | MMS TTS | 通过 MMS 检查点的广泛多语言覆盖 |
 
-Make sure the STT, LLM, and TTS you pair all cover your target language(s). Two usage patterns:
+确保你搭配的 STT、LLM 和 TTS 都覆盖你的目标语言。两种用法：
 
-- **Single language**: set `--language` to the target language code. The default is `en`.
-- **Language switching**: set `--language auto`. The STT detects the language of each spoken prompt and forwards it to the LLM. Optionally add `--enable_lang_prompt` to append a "Please reply to my message in ..." instruction. It defaults to `False`; large LLMs usually infer the language from context, but the explicit instruction can help smaller models.
+- **单语言**：把 `--language` 设为目标语言代码。默认是 `en`。
+- **语言切换**：设 `--language auto`。STT 检测每句语音的语言并转发给 LLM。可选加 `--enable_lang_prompt`，会追加一句"请用……回复我"的指令。默认为 `False`；大模型通常能根据上下文推断语言，但显式指令有助于小模型。
 
-Automatic language detection:
+自动语言检测：
 
 ```bash
 speech-to-speech \
@@ -512,7 +512,7 @@ speech-to-speech \
     --model_name "mlx-community/Qwen3-4B-Instruct-2507-bf16"
 ```
 
-A single non-English language, Chinese in this example:
+单一非英语语言（此例为中文）：
 
 ```bash
 speech-to-speech \
@@ -523,11 +523,11 @@ speech-to-speech \
     --model_name mlx-community/Qwen3-4B-Instruct-2507-bf16
 ```
 
-Both commands also work on top of `--local_mac_optimal_settings`; explicit `--stt` flags override the defaults it sets.
+两条命令也都可以叠加在 `--local_mac_optimal_settings` 之上；显式 `--stt` 参数会覆盖它设置的默认值。
 
 ## Pocket TTS
 
-Pocket TTS from Kyutai Labs provides streaming TTS with voice cloning:
+来自 Kyutai Labs 的 Pocket TTS 提供带音色克隆的流式 TTS：
 
 ```bash
 speech-to-speech \
@@ -536,58 +536,58 @@ speech-to-speech \
     --pocket_tts_device cpu
 ```
 
-Available voice presets: `alba`, `marius`, `javert`, `jean`, `fantine`, `cosette`, `eponine`, `azelma`. Custom voice files and Hugging Face paths also work.
+可用音色预设：`alba`、`marius`、`javert`、`jean`、`fantine`、`cosette`、`eponine`、`azelma`。自定义音色文件和 Hugging Face 路径也支持。
 
-## CLI Reference
+## CLI 参考
 
-References for all CLI arguments live in the [arguments classes](./src/speech_to_speech/arguments_classes) and in `speech-to-speech -h`.
+所有 CLI 参数的参考见 [arguments classes](./src/speech_to_speech/arguments_classes) 和 `speech-to-speech -h`。
 
-### Module-Level Parameters
+### 模块级参数
 
-See [ModuleArguments](./src/speech_to_speech/arguments_classes/module_arguments.py). It allows setting:
+见 [ModuleArguments](./src/speech_to_speech/arguments_classes/module_arguments.py)。它允许设置：
 
-- a common `--device`, if every part should run on the same device
-- `--mode`: `realtime` (default), `local`, `socket`, or `raw-websocket`
-- STT implementation (`--stt`)
-- LLM backend (`--llm_backend`: `transformers`, `mlx-lm`, `responses-api`, or `chat-completions`)
-- TTS implementation (`--tts`)
-- logging level
-- realtime pipeline pool size (`--num_pipelines`)
+- 公共 `--device`，如果所有部分应运行在相同设备上
+- `--mode`：`realtime`（默认）、`local`、`socket` 或 `raw-websocket`
+- STT 实现（`--stt`）
+- LLM 后端（`--llm_backend`：`transformers`、`mlx-lm`、`responses-api` 或 `chat-completions`）
+- TTS 实现（`--tts`）
+- 日志级别
+- 实时管线池大小（`--num_pipelines`）
 
-### VAD Parameters
+### VAD 参数
 
-See [VADHandlerArguments](./src/speech_to_speech/arguments_classes/vad_arguments.py). Notable options:
+见 [VADHandlerArguments](./src/speech_to_speech/arguments_classes/vad_arguments.py)。值得注意的选项：
 
-- `--thresh`: threshold value to trigger voice activity detection.
-- `--min_speech_ms`: minimum duration of detected voice activity to be considered speech.
-- `--min_speech_continuation_ms`: sustain-bar hysteresis threshold for speech that continues a reopenable soft-ended, uncommitted turn within the reopen window. The default and recommended pairing is `--min_speech_ms 384 --min_speech_continuation_ms 192`.
-- `--min_silence_ms`: minimum length of silence intervals for segmenting speech. Default is 64 ms.
-- `--short_segment_merge_ms`: optional merge window for stitching adjacent VAD segments that are each shorter than `--min_speech_ms`.
-- `--unanswered_reopen_ms`: sanity cap on how long a soft-ended speculative turn that has not yet received any assistant output stays reopenable.
+- `--thresh`：触发语音活动检测的阈值。
+- `--min_speech_ms`：被视为语音的检测活动最小时长。
+- `--min_speech_continuation_ms`：持续语音的迟滞阈值，用于在重开窗口内延续软结束、未提交的话轮。默认推荐搭配为 `--min_speech_ms 384 --min_speech_continuation_ms 192`。
+- `--min_silence_ms`：切分语音所需的最短静音长度。默认 64 毫秒。
+- `--short_segment_merge_ms`：可选的合并窗口，用于拼接相邻的、每个都短于 `--min_speech_ms` 的 VAD 段。
+- `--unanswered_reopen_ms`：一个软结束的推测话轮在收到任何助手输出之前保持可重开状态的合理性上限。
 
-### STT, LLM, and TTS Parameters
+### STT、LLM、TTS 参数
 
-`model_name`, `torch_dtype`, and `device` are exposed for each STT, LLM, and TTS implementation. STT and TTS parameters use the handler prefix, for example `--stt_model_name` or `--qwen3_tts_device`. LLM model selection and chat settings are shared across backends via unprefixed flags, for example `--model_name` and `--chat_size`; backend-specific flags use the `responses_api_` prefix for the `responses-api` and `chat-completions` backends and the `llm_` prefix for local backends.
+每个 STT、LLM、TTS 实现都暴露了 `model_name`、`torch_dtype` 和 `device`。STT 和 TTS 参数使用处理器前缀，例如 `--stt_model_name` 或 `--qwen3_tts_device`。LLM 模型选择与聊天设置通过无前缀参数跨后端共享，例如 `--model_name` 和 `--chat_size`；后端专属参数用 `responses_api_` 前缀（`responses-api` 和 `chat-completions` 后端）或 `llm_` 前缀（本地后端）。
 
-For example:
+例如：
 
 ```bash
-# Local transformers/mlx-lm backend
+# 本地 transformers/mlx-lm 后端
 --model_name google/gemma-2b-it
 
-# OpenAI-compatible backend
+# OpenAI 兼容后端
 --llm_backend responses-api --model_name deepseek-chat --responses_api_base_url https://api.deepseek.com
 ```
 
-### Generation Parameters
+### 生成参数
 
-Other generation parameters can be set using the handler prefix plus `_gen_`, for example `--stt_gen_max_new_tokens 128` or `--llm_gen_temperature 0.7`. Parameters not yet exposed can be added to the relevant arguments class.
+其他生成参数可以用处理器前缀加 `_gen_` 设置，例如 `--stt_gen_max_new_tokens 128` 或 `--llm_gen_temperature 0.7`。尚未暴露的参数可以加到对应的 arguments class。
 
-## Contributing
+## 参与贡献
 
-Issues and PRs are welcome. Good starting points are the [open issues](https://github.com/huggingface/speech-to-speech/issues). For larger changes, open an issue first to discuss the approach.
+欢迎提 issue 和 PR。好的起点是[开放 issue](https://github.com/huggingface/speech-to-speech/issues)。较大的改动请先开 issue 讨论方案。
 
-For local development:
+本地开发：
 
 ```bash
 uv sync
@@ -595,13 +595,13 @@ pytest
 ruff check
 ```
 
-## Star History
+## Star 历史
 
 [![Star History Chart](assets/star-history.svg)](https://github.com/huggingface/speech-to-speech/stargazers)
 
-## Citations
+## 引用
 
-If you use this pipeline, please also cite the component models you run. The defaults are:
+如果你使用这条管线，也请引用你运行到的组件模型。默认是：
 
 ### Silero VAD
 
@@ -638,5 +638,3 @@ If you use this pipeline, please also cite the component models you run. The def
   howpublished = {\url{https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice}}
 }
 ```
-
-Citations for optional backends such as Kokoro, Pocket TTS, ChatTTS, Whisper variants, Paraformer, and MMS live in the respective [component READMEs](./src/speech_to_speech).
