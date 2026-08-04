@@ -1,15 +1,11 @@
 <div align="center">
-  <div>&nbsp;</div>
-  <img src="https://raw.githubusercontent.com/huggingface/speech-to-speech/main/logo.png" width="600"/>
-
-# Speech To Speech: Build voice agents with open-source models
+  <img src="assets/xiaoya_cover.svg" alt="小雅 · Xiaoya" width="100%">
+</div>
 
 [![PyPI](https://img.shields.io/pypi/v/speech-to-speech)](https://pypi.org/project/speech-to-speech/)
 [![Python](https://img.shields.io/pypi/pyversions/speech-to-speech)](https://pypi.org/project/speech-to-speech/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](./LICENSE)
 [![GitHub Trending: #1 Repository of the Day](https://img.shields.io/badge/GitHub%20Trending-%231%20Repository%20of%20the%20Day-7B2CBF?logo=github&logoColor=white)](https://trendshift.io/repositories/20645)
-
-</div>
 
 > ## 🌸 Xiaoya (this fork)
 >
@@ -650,3 +646,38 @@ If you use this pipeline, please also cite the component models you run. The def
 ```
 
 Citations for optional backends such as Kokoro, Pocket TTS, ChatTTS, Whisper variants, Paraformer, and MMS live in the respective [component READMEs](./src/speech_to_speech).
+
+
+---
+
+## Buy Me a Coffee
+
+If Xiaoya brings you joy or helps your work, consider buying the author a coffee!
+
+<p align="center">
+  <img src="assets/wechat.jpg" width="28%" alt="WeChat Reward" style="min-width: 180px;" />
+  <img src="assets/alipay.jpg" width="28%" alt="Alipay" style="min-width: 180px;" />
+</p>
+<p align="center">
+  <sub>WeChat &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Alipay</sub>
+</p>
+
+## Contact
+
+- Email: zming19861028@126.com / zming19861028@hotmail.com
+- WeChat: zminlibra
+- GitHub: [zminlibra](https://github.com/zminlibra)
+
+## Acknowledgments
+
+Xiaoya is built on the shoulders of many great open-source projects:
+
+- [HuggingFace speech-to-speech](https://github.com/huggingface/speech-to-speech) — the upstream realtime voice-agent pipeline
+- [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice) — text-to-speech
+- [Faster Whisper](https://github.com/SYSTRAN/faster-whisper) — speech-to-text
+- [Silero VAD](https://github.com/snakers4/silero-vad) — voice activity detection
+- [Qdrant](https://qdrant.tech/) — vector memory
+- [BAAI/bge-small-zh](https://huggingface.co/BAAI/bge-small-zh-v1.5) — Chinese embeddings
+- [RapidOCR](https://github.com/RapidAI/RapidOCR) — OCR
+- [Live2D Cubism](https://www.live2d.com/) — avatar rendering
+- [Electron](https://www.electronjs.org/) — desktop pet shell

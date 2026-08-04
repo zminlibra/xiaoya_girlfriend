@@ -1,15 +1,11 @@
 <div align="center">
-  <div>&nbsp;</div>
-  <img src="https://raw.githubusercontent.com/huggingface/speech-to-speech/main/logo.png" width="600"/>
-
-# 语音到语音（Speech To Speech）：用开源模型构建语音 Agent
+  <img src="assets/xiaoya_cover.svg" alt="小雅 · Xiaoya" width="100%">
+</div>
 
 [![PyPI](https://img.shields.io/pypi/v/speech-to-speech)](https://pypi.org/project/speech-to-speech/)
 [![Python](https://img.shields.io/pypi/pyversions/speech-to-speech)](https://pypi.org/project/speech-to-speech/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](./LICENSE)
 [![GitHub Trending: #1 Repository of the Day](https://img.shields.io/badge/GitHub%20Trending-%231%20Repository%20of%20the%20Day-7B2CBF?logo=github&logoColor=white)](https://trendshift.io/repositories/20645)
-
-</div>
 
 > ## 🌸 小雅（本分支说明）
 >
@@ -644,3 +640,38 @@ ruff check
   howpublished = {\url{https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice}}
 }
 ```
+
+
+---
+
+## 请作者喝杯咖啡
+
+如果小雅给你带来了快乐，或对你的工作有帮助，欢迎请作者喝杯咖啡！
+
+<p align="center">
+  <img src="assets/wechat.jpg" width="28%" alt="微信赞赏" style="min-width: 180px;" />
+  <img src="assets/alipay.jpg" width="28%" alt="支付宝打赏" style="min-width: 180px;" />
+</p>
+<p align="center">
+  <sub>微信赞赏 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 支付宝打赏</sub>
+</p>
+
+## 联系方式
+
+- 邮箱：zming19861028@126.com / zming19861028@hotmail.com
+- 微信：zminlibra
+- GitHub：[zminlibra](https://github.com/zminlibra)
+
+## 致谢
+
+小雅建立在许多优秀开源项目之上：
+
+- [HuggingFace speech-to-speech](https://github.com/huggingface/speech-to-speech) — 上游实时语音 Agent 管线
+- [Qwen3-TTS](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice) — 语音合成
+- [Faster Whisper](https://github.com/SYSTRAN/faster-whisper) — 语音识别
+- [Silero VAD](https://github.com/snakers4/silero-vad) — 语音活动检测
+- [Qdrant](https://qdrant.tech/) — 向量记忆
+- [BAAI/bge-small-zh](https://huggingface.co/BAAI/bge-small-zh-v1.5) — 中文向量嵌入
+- [RapidOCR](https://github.com/RapidAI/RapidOCR) — OCR 文字识别
+- [Live2D Cubism](https://www.live2d.com/) — 虚拟形象渲染
+- [Electron](https://www.electronjs.org/) — 桌宠外壳

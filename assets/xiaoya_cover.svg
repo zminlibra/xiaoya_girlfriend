@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-label="小雅 · Xiaoya cover">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f9a8d4"/>
+      <stop offset="0.5" stop-color="#c084fc"/>
+      <stop offset="1" stop-color="#818cf8"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="400" fill="url(#bg)"/>
+  <circle cx="140" cy="110" r="150" fill="url(#glow1)"/>
+  <circle cx="1070" cy="300" r="170" fill="url(#glow1)"/>
+  <circle cx="990" cy="90" r="60" fill="url(#glow1)"/>
+  <circle cx="220" cy="320" r="50" fill="url(#glow1)"/>
+  <text x="600" y="185" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="72" font-weight="bold" fill="#ffffff">小雅 · Xiaoya</text>
+  <text x="600" y="252" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="27" fill="#ffffff" opacity="0.95">AI Voice Girlfriend · Live2D Desktop Pet</text>
+  <text x="600" y="302" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="19" fill="#ffffff" opacity="0.82">低延迟语音 Agent · 实时对话 · Agent 工具 · 向量记忆</text>
+  <text x="600" y="352" text-anchor="middle" font-family="PingFang SC, Microsoft YaHei, sans-serif" font-size="14" fill="#ffffff" opacity="0.65">基于 HuggingFace speech-to-speech</text>
+</svg>
