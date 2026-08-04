@@ -27,6 +27,12 @@
 >
 > Upstream: https://github.com/huggingface/speech-to-speech
 
+<p align="center">
+  <img src="assets/xiaoya_waifu.png" alt="Xiaoya running as a Live2D transparent desktop pet" width="440">
+  <br/>
+  <em>小雅（Xiaoya）— the Live2D transparent desktop pet running</em>
+</p>
+
 
 
 A low-latency, fully modular voice-agent pipeline: **VAD -> STT -> LLM -> TTS**, exposed through an **OpenAI Realtime-compatible WebSocket API**. Every component is swappable. The LLM slot speaks OpenAI-compatible protocols, so you can point it at a hosted provider, at [HF Inference Providers](https://huggingface.co/inference-providers), or at a vLLM or llama.cpp server on your own hardware for a fully local, fully open stack.

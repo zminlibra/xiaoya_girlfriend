@@ -25,6 +25,12 @@
 >
 > 上游：https://github.com/huggingface/speech-to-speech
 
+<p align="center">
+  <img src="assets/xiaoya_waifu.png" alt="小雅运行中的 Live2D 透明桌宠截图" width="440">
+  <br/>
+  <em>小雅 — 运行中的 Live2D 透明桌宠</em>
+</p>
+
 这是一个低延迟、完全模块化的语音 Agent 管线：**VAD → STT → LLM → TTS**，通过 **OpenAI Realtime 兼容的 WebSocket API** 对外暴露。每个组件都可以替换。LLM 槽位支持 OpenAI 兼容协议，因此可以指向托管服务商、[HF Inference Providers](https://huggingface.co/inference-providers)，或你自有硬件上的 vLLM / llama.cpp 服务器，实现完全本地、完全开源的堆栈。
 
 该管线已在生产环境中作为数千台 [Reachy Mini](https://huggingface.co/blog/reachy-mini) 机器人的对话后端运行。
