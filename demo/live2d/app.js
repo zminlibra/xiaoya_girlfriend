@@ -7,12 +7,16 @@
 
   const WS_URL = `ws://${location.hostname}:8765/v1/realtime`;
   // 可选 Live2D 形象（moc3 版本需 ≤4，Mao/Ren 版本过高不兼容当前 Cubism Core）
-  // 使用旧版 Cubism Core（支持 moc3 ≤ v4）；高版本模型不可用，仅保留 4 个稳定模型
+  // 使用新版 Cubism Core（SDK5）+ 打补丁的 pixi-live2d-display，支持 moc3 v3~v6
   const CHARACTERS = [
     { id: "Hiyori",  label: "Hiyori · 蓝发少女", url: "./models/Hiyori/Hiyori.model3.json" },
     { id: "Haru",    label: "Haru · 红发少女",   url: "./models/Haru/Haru.model3.json" },
     { id: "Natori",  label: "Natori · 棕发少女", url: "./models/Natori/Natori.model3.json" },
     { id: "Rice",    label: "Rice · 软萌女孩",  url: "./models/Rice/Rice.model3.json" },
+    { id: "Mark",    label: "Mark · 机器人少女", url: "./models/Mark/Mark.model3.json" },
+    { id: "Wanko",   label: "Wanko · 可爱小狗",  url: "./models/Wanko/Wanko.model3.json" },
+    { id: "Mao",     label: "Mao · 白毛少女",   url: "./models/Mao/Mao.model3.json" },
+    { id: "Ren",     label: "Ren · 长辫少女",   url: "./models/Ren/Ren.model3.json" },
   ];
   let currentCharacter = localStorage.getItem("xiaoya_character") || "Hiyori";
   function currentModelUrl() {
