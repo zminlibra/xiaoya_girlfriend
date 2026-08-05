@@ -8,15 +8,16 @@
   const WS_URL = `ws://${location.hostname}:8765/v1/realtime`;
   // 可选 Live2D 形象（moc3 版本需 ≤4，Mao/Ren 版本过高不兼容当前 Cubism Core）
   // 使用新版 Cubism Core（SDK5）+ 打补丁的 pixi-live2d-display，支持 moc3 v3~v6
+  // 形象采用 Live2D 官方设定（Cubism 官方示例角色）
   const CHARACTERS = [
-    { id: "Hiyori",  label: "Hiyori · 蓝发少女", url: "./models/Hiyori/Hiyori.model3.json" },
-    { id: "Haru",    label: "Haru · 红发少女",   url: "./models/Haru/Haru.model3.json" },
-    { id: "Natori",  label: "Natori · 棕发少女", url: "./models/Natori/Natori.model3.json" },
-    { id: "Rice",    label: "Rice · 软萌女孩",  url: "./models/Rice/Rice.model3.json" },
-    { id: "Mark",    label: "Mark · 机器人少女", url: "./models/Mark/Mark.model3.json" },
-    { id: "Wanko",   label: "Wanko · 可爱小狗",  url: "./models/Wanko/Wanko.model3.json" },
-    { id: "Mao",     label: "Mao · 白毛少女",   url: "./models/Mao/Mao.model3.json" },
-    { id: "Ren",     label: "Ren · 长辫少女",   url: "./models/Ren/Ren.model3.json" },
+    { id: "Hiyori",  label: "少女 · 桃濑日和",      url: "./models/Hiyori/Hiyori.model3.json" },
+    { id: "Haru",    label: "接待人员 · 春",        url: "./models/Haru/Haru.model3.json" },
+    { id: "Natori",  label: "管家 · 名执尽",        url: "./models/Natori/Natori.model3.json" },
+    { id: "Rice",    label: "魔法少女 · Rice Glassfield", url: "./models/Rice/Rice.model3.json" },
+    { id: "Mark",    label: "简笔风格 · 马克君",    url: "./models/Mark/Mark.model3.json" },
+    { id: "Wanko",   label: "狗狗 · Wanko",         url: "./models/Wanko/Wanko.model3.json" },
+    { id: "Mao",     label: "巫女 · 虹色Mao",       url: "./models/Mao/Mao.model3.json" },
+    { id: "Ren",     label: "短发男 · 莲·福斯特",   url: "./models/Ren/Ren.model3.json" },
   ];
   let currentCharacter = localStorage.getItem("xiaoya_character") || "Hiyori";
   function currentModelUrl() {
