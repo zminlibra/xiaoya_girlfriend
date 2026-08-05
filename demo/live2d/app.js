@@ -18,6 +18,9 @@
     { id: "Wanko",   label: "狗狗 · Wanko",         url: "./models/Wanko/Wanko.model3.json" },
     { id: "Mao",     label: "巫女 · 虹色Mao",       url: "./models/Mao/Mao.model3.json" },
     { id: "Ren",     label: "短发男 · 莲·福斯特",   url: "./models/Ren/Ren.model3.json" },
+    { id: "HaruCasual", label: "常服 · 少女春",      url: "./models/HaruCasual/haru.model3.json" },
+    { id: "Miara",   label: "精灵 · 少女亚米拉",    url: "./models/Miara/miara_pro_t03.model3.json" },
+    { id: "Kei",     label: "白发 · 少女京",        url: "./models/Kei/kei_vowels_pro.model3.json" },
   ];
   let currentCharacter = localStorage.getItem("xiaoya_character") || "Hiyori";
   function currentModelUrl() {
