@@ -1357,6 +1357,25 @@
   });
 
   // ---------- 文件上传（传文档/录音/图片给小雅解析）----------
+  //
+  // 图片单独走「真视觉」路径：直接把图片作为 input_image 发给 LLM，
+  // 由模型的视觉能力理解画面。剩下的文件（文档/录音等）仍走
+  // /api/upload + file 工具的老路径（服务端解析/OCR 后把纯文本给模型）。
+  //
+  // 之所以要分流：老路径对图片只做 OCR 文字提取，照片、表情包、图表
+  // 这类没有文字或文字稀疏的图像等于什么都没传给模型，看起来就像
+  // 「不会识图」。而当前模型（deepseek-v4-flash）本身是具备视觉能力的。
+  const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|bmp)$/i;
+
+  function readFileAsDataURL(f) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = () => reject(r.error || new Error("读取失败"));
+      r.readAsDataURL(f);
+    });
+  }
+
   const uploadBtn = $("upload-btn");
   const fileInput = $("file-input");
   uploadBtn.addEventListener("click", () => fileInput.click());
@@ -1364,9 +1383,28 @@
     const files = fileInput.files;
     if (!files || !files.length) return;
     for (const f of Array.from(files)) {
-      const fd = new FormData();
-      fd.append("file", f);
+      const isImage = f.type.startsWith("image/") || IMAGE_EXT_RE.test(f.name);
       try {
+        if (isImage) {
+          setStatus("正在看图…", "thinking");
+          const dataUrl = await readFileAsDataURL(f);
+          addMsg("user", `🖼 我发了一张图片：${f.name}`);
+          sendEvent({
+            type: "conversation.item.create",
+            item: {
+              type: "message",
+              role: "user",
+              content: [
+                { type: "input_text", text: "看看这张图片，说说你看到了什么。" },
+                { type: "input_image", image_url: dataUrl },
+              ],
+            },
+          });
+          sendEvent({ type: "response.create" });
+          continue;
+        }
+        const fd = new FormData();
+        fd.append("file", f);
         setStatus("正在上传文件…", "speaking");
         const res = await fetch("/api/upload", { method: "POST", body: fd });
         const json = await res.json();
