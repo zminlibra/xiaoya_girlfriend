@@ -134,3 +134,24 @@ class Qwen3TTSHandlerArguments:
             "help": "Audio chunk size in samples for streaming output. Must match LocalAudioStreamer blocksize. Default is 512."
         },
     )
+    qwen3_tts_temperature: float = field(
+        default=0.9,
+        metadata={
+            "help": "Sampling temperature for Qwen3-TTS. Lower values produce a flatter, more monotone (read-aloud) delivery; higher values add prosodic variation and pauses. Default is 0.9."
+        },
+    )
+    qwen3_tts_top_k: int = field(
+        default=50,
+        metadata={"help": "Top-k sampling cutoff for Qwen3-TTS. Default is 50."},
+    )
+    qwen3_tts_top_p: float = field(
+        default=1.0,
+        metadata={"help": "Nucleus sampling probability for Qwen3-TTS. Default is 1.0."},
+    )
+    qwen3_tts_repetition_penalty: float = field(
+        default=1.05,
+        metadata={
+            "help": "Repetition penalty for Qwen3-TTS. Slightly higher values reduce repeated intonation patterns. Default is 1.05."
+        },
+    )
+

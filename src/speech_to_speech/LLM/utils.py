@@ -15,8 +15,16 @@ SMART_PUNCT_TRANSLATION = str.maketrans(
     }
 )
 
+# Full-width CJK punctuation must stay in the allowlist: dropping it turns a
+# Chinese reply into one unpunctuated run, so the TTS model has no pause cues and
+# reads several clauses together. Half-width equivalents are handled below.
+CJK_PUNCTUATION = "，。！？、；：（）【】《》「」『』“”‘’—…·～"
+CJK_PUNCTUATION_CLASS = re.escape(CJK_PUNCTUATION)
+
 SPEECHABLE_PATTERN = re.compile(
-    r"[^\w\s.,!?;:'\"\-()\/\\@#%&*+=$€£¥₹₽¢\[\]{}<>~`^|…—–\n\r\t]",
+    r"[^\w\s.,!?;:'\"\-()\/\\@#%&*+=$€£¥₹₽¢\[\]{}<>~`^|…—–\n\r\t"
+    + CJK_PUNCTUATION_CLASS
+    + r"]",
     flags=re.UNICODE,
 )
 
@@ -27,6 +35,40 @@ def remove_unspeechable(text: str) -> str:
     """
     text = text.translate(SMART_PUNCT_TRANSLATION)
     return SPEECHABLE_PATTERN.sub("", text)
+
+
+# CJK sentence-ending punctuation. nltk's ``sent_tokenize`` is Punkt-trained on
+# English and returns a whole Chinese paragraph as a single "sentence", which
+# silently disables sentence batching in the streaming LLM path (the batch never
+# reaches ``stream_batch_sentences``) and lets an incidental Latin newline split
+# a Chinese sentence mid-way. Both make the TTS output sound discontinuous.
+CJK_SENTENCE_PUNCT = "。！？…；!?"
+CJK_CLOSING_QUOTES = "”’』」》）】"
+_CJK_SENTENCE_SPLIT_RE = re.compile(
+    rf"(?<=[{re.escape(CJK_SENTENCE_PUNCT)}])|(?<=[{re.escape(CJK_CLOSING_QUOTES)}])(?=[^\s])"
+)
+_CJK_CHAR_RE = re.compile(r"[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]")
+
+
+def has_cjk(text: str) -> bool:
+    """Whether ``text`` contains CJK/Japanese/Korean ideographic characters."""
+    return bool(_CJK_CHAR_RE.search(text))
+
+
+def split_sentences(text: str) -> list[str]:
+    """Split ``text`` into sentences, handling CJK punctuation correctly.
+
+    Falls back to ``nltk.sent_tokenize`` for non-CJK text so English behaviour is
+    unchanged. Empty segments are dropped.
+    """
+    if not text:
+        return []
+    if has_cjk(text):
+        parts = [part.strip() for part in _CJK_SENTENCE_SPLIT_RE.split(text)]
+        return [part for part in parts if part]
+    from nltk import sent_tokenize
+
+    return sent_tokenize(text)
 
 
 # Maps an STT language code to the language name used in the "Please reply ... in {name}"

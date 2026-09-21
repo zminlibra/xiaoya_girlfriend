@@ -26,12 +26,33 @@ from rich.console import Console
 
 from speech_to_speech.api.openai_realtime.runtime_config import RuntimeConfig
 from speech_to_speech.baseHandler import BaseHandler
+from speech_to_speech.LLM.utils import has_cjk
 from speech_to_speech.pipeline.cancel_scope import CancelScope
 from speech_to_speech.pipeline.control import SESSION_END, is_control_message
 from speech_to_speech.pipeline.handler_types import TTSIn, TTSOut
 from speech_to_speech.pipeline.messages import AUDIO_RESPONSE_DONE, PIPELINE_END, EndOfResponse, TTSInput
 from speech_to_speech.pipeline.speculative_turns import SpeculativeTurnTracker
 from speech_to_speech.utils.mlx_lock import MLXLockContext
+
+
+def join_tts_parts(parts: list[str]) -> str:
+    """Join text fragments queued for TTS without injecting artificial pauses.
+
+    The streaming pipeline hands TTS arbitrary fragments of the same utterance.
+    Joining CJK fragments with a space makes the model emit a pause or an odd
+    intonation at every fragment boundary, so those are concatenated directly;
+    Latin fragments still get a space, which is what they need.
+    """
+    if not parts:
+        return ""
+    separator_by_next = ["" if has_cjk(part) else " " for part in parts[1:]]
+    out = [parts[0]]
+    for separator, part in zip(separator_by_next, parts[1:], strict=True):
+        if not out[-1].endswith((" ", "\n")) and not part.startswith((" ", "\n")):
+            out.append(separator)
+        out.append(part)
+    return "".join(out).strip()
+
 
 logger = logging.getLogger(__name__)
 console = Console()
@@ -117,6 +138,10 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
         streaming_chunk_size: int | None = None,
         max_new_tokens: int = DEFAULT_QWEN3_TTS_MAX_NEW_TOKENS,
         blocksize: int = 512,
+        temperature: float = 0.9,
+        top_k: int = 50,
+        top_p: float = 1.0,
+        repetition_penalty: float = 1.05,
         gen_kwargs: dict[str, Any] | None = None,
         cancel_scope: CancelScope | None = None,
         speculative_turns: SpeculativeTurnTracker | None = None,
@@ -143,6 +168,10 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
         self.mlx_quantization = self._normalize_mlx_quantization(mlx_quantization)
         self.max_new_tokens = max_new_tokens
         self.blocksize = blocksize
+        self.temperature = temperature
+        self.top_k = top_k
+        self.top_p = top_p
+        self.repetition_penalty = repetition_penalty
         self.dtype: torch.dtype | None | str = None
         self.gen_kwargs = gen_kwargs or {}
         self._mlx_ref_audio_cache: dict[str, Any] = {}
@@ -591,6 +620,20 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
                 return [str(speaker) for speaker in speakers if speaker]
         return None
 
+    def _sampling_kwargs(self) -> dict[str, Any]:
+        """Sampling parameters shared by every generation path.
+
+        These control how much prosodic variation the talker model produces.
+        The stock defaults (~0.9/50) yield a flat, read-aloud delivery; raising
+        temperature and top_k is what makes speech sound conversational.
+        """
+        return {
+            "temperature": getattr(self, "temperature", 0.9),
+            "top_k": getattr(self, "top_k", 50),
+            "top_p": getattr(self, "top_p", 1.0),
+            "repetition_penalty": getattr(self, "repetition_penalty", 1.05),
+        }
+
     def _resolve_speaker(self) -> Optional[str]:
         if self.speaker:
             return self.speaker
@@ -779,7 +822,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
                 if language_code is None:
                     language_code = next_item.language_code
 
-        combined_text = " ".join(parts).strip()
+        combined_text = join_tts_parts(parts)
         return combined_text, language_code, saw_end_of_response
 
     def process(self, tts_input: TTSIn) -> Iterator[TTSOut]:
@@ -910,6 +953,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
                 max_new_tokens=utterance_max_new_tokens,
                 parity_mode=self.parity_mode,
                 non_streaming_mode=self.non_streaming_mode,
+                **self._sampling_kwargs(),
             ),
             label="voice_clone_parity" if self.parity_mode else "voice_clone",
         )
@@ -944,6 +988,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
                 chunk_size=self.streaming_chunk_size,
                 max_new_tokens=utterance_max_new_tokens,
                 non_streaming_mode=self.non_streaming_mode,
+                **self._sampling_kwargs(),
             ),
             label="custom_voice",
         )
@@ -969,6 +1014,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
                 chunk_size=self.streaming_chunk_size,
                 max_new_tokens=utterance_max_new_tokens,
                 non_streaming_mode=self.non_streaming_mode,
+                **self._sampling_kwargs(),
             ),
             label="voice_design",
         )

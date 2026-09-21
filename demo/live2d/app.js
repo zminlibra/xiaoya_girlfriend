@@ -75,19 +75,21 @@
   let turnCount = 0;
 
   // VoiceDesign 描述式音色（由 Qwen3-TTS-12Hz-1.7B-VoiceDesign 支持，id 即文字描述 instruct）
+  //
+  // 描述分两部分：① 音色（声线本身）② 说话方式（语速/停顿/气声/尾音/情绪基调）。
+  // 第 ② 部分才是消除"朗读腔"的关键——只写音色，模型会用最平均、最字正腔圆的方式念出来。
+  // 写描述时多用：口语化、语速偏慢、句间有自然停顿、带气声/笑音、尾音自然上扬、绝不朗读腔。
   const QWEN_VOICES = [
-    { id: "温柔清澈的年轻女声，说话自然亲切", label: "女声 · 温柔清澈 (Serena)" },
-    { id: "甜美活泼的少女音，带一点俏皮", label: "女声 · 甜美活泼 (Vivian)" },
-    { id: "轻柔细腻的韩系女声，发音清晰柔和", label: "女声 · 轻柔细腻 (Sohee)" },
-    { id: "元气可爱的日系女声，语速轻快有活力", label: "女声 · 元气日系 (Ono Anna)" },
-    { id: "低沉有磁性的成熟男声，稳重温柔", label: "男声 · 低沉磁性 (Aiden)" },
-    { id: "温暖阳光的年轻男声，干净自然", label: "男声 · 温暖阳光 (Dylan)" },
-    { id: "清朗爽快的男声，语速适中带亲和力", label: "男声 · 清朗爽快 (Eric)" },
-    { id: "阳光少年感男声，明亮有朝气", label: "男声 · 阳光少年 (Ryan)" },
-    { id: "憨厚朴实的中年男声，语调温和", label: "男声 · 憨厚朴实 (Uncle Fu)" },
+    { id: "温柔清澈的年轻女声，口语化聊天感，语气慵懒亲昵，语速偏慢，句间有自然停顿，带一点气声和笑音，尾音自然上扬，绝不朗读腔", label: "女声 · 温柔亲昵 (Serena) ★推荐" },
+    { id: "甜美活泼的少女音，说话俏皮自然，语速轻快，句间有停顿和笑音，情绪外放，绝不朗读腔", label: "女声 · 甜美活泼 (Vivian)" },
+    { id: "轻柔细腻的韩系女声，口语化，语速偏慢，气声柔和，句尾自然轻收，绝不朗读腔", label: "女声 · 轻柔细腻 (Sohee)" },
+    { id: "元气可爱的日系女声，说话轻快有活力，句间有俏皮的停顿和上扬尾音，绝不朗读腔", label: "女声 · 元气日系 (Ono Anna)" },
+    { id: "低沉有磁性的成熟男声，说话稳重自然，语速偏慢，句间有从容的停顿，带一点气声，绝不朗读腔", label: "男声 · 低沉磁性 (Aiden)" },
+    { id: "温暖阳光的年轻男声，口语化，语速适中，语气放松自然，句间有自然停顿，绝不朗读腔", label: "男声 · 温暖阳光 (Dylan)" },
+    { id: "清朗爽快的男声，说话干脆自然，语速适中带亲和力，句间有停顿，绝不朗读腔", label: "男声 · 清朗爽快 (Eric)" },
+    { id: "阳光少年感男声，说话明亮有朝气，语速轻快，句间有活泼的停顿，绝不朗读腔", label: "男声 · 阳光少年 (Ryan)" },
+    { id: "憨厚朴实的中年男声，说话慢条斯理，语速偏慢，句间有充分的停顿，语调温和，绝不朗读腔", label: "男声 · 憨厚朴实 (Uncle Fu)" },
   ];
-  // GPT-SoVITS 自定义音色（来自 Shinsekai，本地 GPT-SoVITS API 生成）
-  const GSV_BASE = ""; // 通过 7860 同源代理 /api/gsv/* 访问 GPT-SoVITS，避免跨域
 
   // Agent 工具（function calling）：让 AI 能联网搜索、读写文件、打开/关闭应用、打开网页
   const TOOL_DEFS = [
@@ -256,17 +258,18 @@
       },
     },
   ];
-  const GSV_VOICES = [
-    { id: "gsv_furina",    label: "自定义 · 芙宁娜",   gpt: "C:/Users/Administrator/shinsekai_voices/furina/models/芙宁娜_ZH-e10.ckpt",    sovits: "C:/Users/Administrator/shinsekai_voices/furina/models/芙宁娜_ZH_e10_s950_l32.pth",    ref_audio: "C:/Users/Administrator/shinsekai_voices/furina/models/【默认】根据故事走向，前往特定情景吗？听起来挺新颖。所以信封里写了什么？.wav", prompt_text: "根据故事走向，前往特定情景吗？听起来挺新颖。所以信封里写了什么？", prompt_lang: "zh" },
-    { id: "gsv_aimisi",    label: "自定义 · 爱弥斯",   gpt: "C:/Users/Administrator/shinsekai_voices/Ameath2/models/aimisi-e16.ckpt",         sovits: "C:/Users/Administrator/shinsekai_voices/Ameath2/models/aimisi_e10_s180.pth",          ref_audio: "C:/Users/Administrator/shinsekai_voices/Ameath2/models/IMS.wav",                     prompt_text: "学院的效率也太低啦，现在还没发给你……", prompt_lang: "zh" },
-    { id: "gsv_nanami",    label: "自定义 · 七海千秋", gpt: "C:/Users/Administrator/shinsekai_voices/nanami/models/nanami-e15.ckpt",          sovits: "C:/Users/Administrator/shinsekai_voices/nanami/models/nanami_e8_s496.pth",            ref_audio: "C:/Users/Administrator/shinsekai_voices/nanami/models/nanami.aac_0001620800_0001747840.wav", prompt_text: "でも、怪しい人の手がかりならある。", prompt_lang: "ja" },
-    { id: "gsv_priestess", label: "自定义 · 普瑞赛斯", gpt: "C:/Users/Administrator/shinsekai_voices/Priestess/models/普瑞赛斯.ckpt",       sovits: "C:/Users/Administrator/shinsekai_voices/Priestess/models/普瑞赛斯.pth",             ref_audio: "C:/Users/Administrator/shinsekai_voices/Priestess/models/私の手を握って行きましょあなたは私と共に歩んでく.wav", prompt_text: "私の手を握って行きましょあなたは私と共に歩んでく", prompt_lang: "ja" },
-  ];
-  const VOICES = [...QWEN_VOICES, ...GSV_VOICES];
-  let currentVoice = QWEN_VOICES[0].id; // 默认女声（VoiceDesign 描述）
-  let lastVoice = QWEN_VOICES[0].id;    // 上一次非"自定义"的选择
-  let useGPTSoVITS = false;    // 是否用 GPT-SoVITS 生成语音
-  let currentGSV = null;       // 当前 GPT-SoVITS 音色配置
+  const VOICES = [...QWEN_VOICES];
+  // 从 localStorage 恢复上次选择的音色（若有效性校验通过），否则用默认女声
+  const savedVoice = (() => {
+    try { return localStorage.getItem("xiaoya_voice"); } catch (e) { return null; }
+  })();
+  let currentVoice = VOICES.some((v) => v.id === savedVoice) ? savedVoice : QWEN_VOICES[0].id;
+  let lastVoice = currentVoice;
+
+  // 保存当前音色到 localStorage（下次启动恢复）
+  function persistVoice(v) {
+    try { localStorage.setItem("xiaoya_voice", v); } catch (e) {}
+  }
 
   // 回复语言
   const LANGS = {
@@ -650,59 +653,7 @@
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
   }
 
-  // ---------- GPT-SoVITS 自定义音色 ----------
-  // 切换 GPT-SoVITS 模型和参考音频
-  async function switchGSV(gsv) {
-    try {
-      await fetch(`${GSV_BASE}/api/gsv/set_refer_aduio?refer_audio_path=${encodeURIComponent(gsv.ref_audio)}`);
-      await fetch(`${GSV_BASE}/api/gsv/set_gpt_weights?weights_path=${encodeURIComponent(gsv.gpt)}`);
-      await fetch(`${GSV_BASE}/api/gsv/set_sovits_weights?weights_path=${encodeURIComponent(gsv.sovits)}`);
-      return true;
-    } catch (e) {
-      console.warn("切换 GPT-SoVITS 音色失败:", e);
-      return false;
-    }
-  }
-
-  // 用 GPT-SoVITS 合成语音并播放
-  async function synthGPT(text) {
-    if (!currentGSV || !audioCtx) return;
-    try {
-      setStatus("小雅正在说话…", "speaking");
-      const params = new URLSearchParams({
-        text: text,
-        text_lang: (LANGS[currentLang] || LANGS.zh).textLang,
-        ref_audio_path: currentGSV.ref_audio,
-        prompt_text: currentGSV.prompt_text,
-        prompt_lang: currentGSV.prompt_lang,
-        text_split_method: "cut5",
-        media_type: "wav",
-      });
-      const resp = await fetch(`${GSV_BASE}/api/gsv/tts?${params.toString()}`);
-      if (!resp.ok) { console.warn("GPT-SoVITS /tts 失败:", resp.status); return; }
-      const buf = await resp.arrayBuffer();
-      const audioBuf = await audioCtx.decodeAudioData(buf);
-      const samples = audioBuf.getChannelData(0);
-      // 重采样到 16k（audio-playback worklet 按 16k 播放）
-      const ratio = 16000 / audioBuf.sampleRate;
-      const out = new Float32Array(Math.max(1, Math.round(samples.length * ratio)));
-      for (let i = 0; i < out.length; i++) {
-        const pos = i / ratio;
-        const idx = Math.floor(pos);
-        const frac = pos - idx;
-        const a = samples[idx];
-        const b = samples[Math.min(idx + 1, samples.length - 1)];
-        out[i] = a + (b - a) * frac;
-      }
-      if (voiceOn) {
-        pushAudio(out);
-      }
-    } catch (e) {
-      console.warn("GPT-SoVITS 合成失败:", e);
-    }
-  }
-
-  function handleMessage(msg) {
+    function handleMessage(msg) {
     switch (msg.type) {
       case "conversation.item.input_audio_transcription.completed": {
         const t = (msg.transcript || "").trim();
@@ -712,13 +663,10 @@
       case "response.output_audio_transcript.done": {
         const t = (msg.transcript || "").trim();
         if (t) addMsg("ai", t);
-        // GPT-SoVITS 模式下，用自定义音色重新合成语音
-        if (useGPTSoVITS && t) synthGPT(t);
         break;
       }
       case "response.output_audio.delta": {
-        // GPT-SoVITS 模式下忽略后端 Qwen3-TTS 音频，改用自定义音色
-        if (!useGPTSoVITS && msg.delta) {
+        if (msg.delta) {
           const pcm = b64ToPcm16(msg.delta);
           if (voiceOn && audioCtx) {
             if (audioCtx.state !== "running") audioCtx.resume().catch(() => {});
@@ -727,13 +675,12 @@
             pushAudio(samples);
           }
         }
-        if (!useGPTSoVITS) setStatus("小雅正在说话…", "speaking");
+        setStatus("小雅正在说话…", "speaking");
         break;
       }
       case "response.audio_transcript.done": {
         const t = (msg.transcript || "").trim();
         if (t) addMsg("ai", t);
-        if (useGPTSoVITS && t) synthGPT(t);
         break;
       }
       case "response.function_call_arguments.done": {
@@ -1441,7 +1388,7 @@
     toggleVoice.textContent = voiceOn ? "🔊 语音回复" : "🔇 静音回复";
   });
 
-  // 音色选择器（分组：内置音色 / GPT-SoVITS 自定义音色）
+  // 音色选择器（内置 VoiceDesign 音色 + 自定义描述）
   function addVoiceGroup(label, list) {
     const group = document.createElement("optgroup");
     group.label = label;
@@ -1455,7 +1402,6 @@
     voiceSelect.appendChild(group);
   }
   addVoiceGroup("内置音色", QWEN_VOICES);
-  addVoiceGroup("GPT-SoVITS 自定义", GSV_VOICES);
   // 自定义音色描述（VoiceDesign：输入任意文字描述生成专属音色）
   const customOpt = document.createElement("option");
   customOpt.value = "__custom__";
@@ -1495,30 +1441,17 @@
     addMsg("ai", `(回复语言已切换为 ${(LANGS[currentLang] || LANGS.zh).label})`);
   });
 
-  // 应用音色切换（发 session.update 或切 GPT-SoVITS）
+  // 应用音色切换（发 session.update，VoiceDesign 描述式）
   function applyVoiceChange(sel) {
     currentVoice = sel;
     lastVoice = sel;
+    persistVoice(sel);
     const label = VOICES.find((v) => v.id === sel)?.label || sel;
-    if (sel.startsWith("gsv_")) {
-      // 切到 GPT-SoVITS 自定义音色
-      const gsv = GSV_VOICES.find((v) => v.id === sel);
-      if (!gsv) return;
-      useGPTSoVITS = true;
-      currentGSV = gsv;
-      switchGSV(gsv).then((ok) => {
-        addMsg("ai", ok ? `(已切换声音为 ${label})` : `(切换 ${label} 失败，请确认 GPT-SoVITS 已启动)`);
-      });
-    } else {
-      // 切回内置 Qwen3-TTS 音色（VoiceDesign 描述式）
-      useGPTSoVITS = false;
-      currentGSV = null;
-      sendEvent({
-        type: "session.update",
-        session: { type: "realtime", audio: { output: { voice: sel } } },
-      });
-      addMsg("ai", `(已切换声音为 ${label})`);
-    }
+    sendEvent({
+      type: "session.update",
+      session: { type: "realtime", audio: { output: { voice: sel } } },
+    });
+    addMsg("ai", `(已切换声音为 ${label})`);
   }
 
   // ---------- 自定义音色管理（持久化到 localStorage，含名字标签）----------
