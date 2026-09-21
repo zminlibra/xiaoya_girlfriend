@@ -142,6 +142,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
         top_k: int = 50,
         top_p: float = 1.0,
         repetition_penalty: float = 1.05,
+        do_sample: bool = True,
         gen_kwargs: dict[str, Any] | None = None,
         cancel_scope: CancelScope | None = None,
         speculative_turns: SpeculativeTurnTracker | None = None,
@@ -172,6 +173,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
         self.top_k = top_k
         self.top_p = top_p
         self.repetition_penalty = repetition_penalty
+        self.do_sample = do_sample
         self.dtype: torch.dtype | None | str = None
         self.gen_kwargs = gen_kwargs or {}
         self._mlx_ref_audio_cache: dict[str, Any] = {}
@@ -632,6 +634,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
             "top_k": getattr(self, "top_k", 50),
             "top_p": getattr(self, "top_p", 1.0),
             "repetition_penalty": getattr(self, "repetition_penalty", 1.05),
+            "do_sample": getattr(self, "do_sample", True),
         }
 
     def _resolve_speaker(self) -> Optional[str]:

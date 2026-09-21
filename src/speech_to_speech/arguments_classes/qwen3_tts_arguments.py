@@ -154,4 +154,11 @@ class Qwen3TTSHandlerArguments:
             "help": "Repetition penalty for Qwen3-TTS. Slightly higher values reduce repeated intonation patterns. Default is 1.05."
         },
     )
+    qwen3_tts_do_sample: bool = field(
+        default=True,
+        metadata={
+            "help": "Whether to sample codec tokens stochastically. True (default) adds prosodic variety but also makes the timbre drift noticeably between utterances; set False for deterministic decoding, which pins the voice identity at the cost of repeating identical deliveries."
+        },
+    )
+
 
