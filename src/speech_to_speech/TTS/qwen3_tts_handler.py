@@ -27,6 +27,7 @@ from rich.console import Console
 from speech_to_speech.api.openai_realtime.runtime_config import RuntimeConfig
 from speech_to_speech.baseHandler import BaseHandler
 from speech_to_speech.LLM.utils import has_cjk
+from speech_to_speech.TTS.emotion import apply_emotion
 from speech_to_speech.pipeline.cancel_scope import CancelScope
 from speech_to_speech.pipeline.control import SESSION_END, is_control_message
 from speech_to_speech.pipeline.handler_types import TTSIn, TTSOut
@@ -143,6 +144,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
         top_p: float = 1.0,
         repetition_penalty: float = 1.05,
         do_sample: bool = True,
+        emotion_instruct: bool = True,
         gen_kwargs: dict[str, Any] | None = None,
         cancel_scope: CancelScope | None = None,
         speculative_turns: SpeculativeTurnTracker | None = None,
@@ -174,6 +176,9 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
         self.top_p = top_p
         self.repetition_penalty = repetition_penalty
         self.do_sample = do_sample
+        # self.instruct stays the *base* voice description; the emotion suffix is
+        # derived per utterance so repeated calls never accumulate styles.
+        self.emotion_instruct = emotion_instruct
         self.dtype: torch.dtype | None | str = None
         self.gen_kwargs = gen_kwargs or {}
         self._mlx_ref_audio_cache: dict[str, Any] = {}
@@ -637,6 +642,16 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
             "do_sample": getattr(self, "do_sample", True),
         }
 
+    def _instruct_for(self, text: str) -> Optional[str]:
+        """Base instruct plus the emotion style matching ``text``.
+
+        Derived per utterance rather than stored, so the base description is
+        never mutated and consecutive turns cannot stack styles.
+        """
+        if not getattr(self, "emotion_instruct", True):
+            return self.instruct
+        return apply_emotion(self.instruct, text)
+
     def _resolve_speaker(self) -> Optional[str]:
         if self.speaker:
             return self.speaker
@@ -964,6 +979,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
     def _process_custom_voice(self, text: str) -> Iterator[bytes | np.ndarray]:
         utterance_max_new_tokens = self._estimate_max_new_tokens(text)
         speaker = self._resolve_speaker()
+        instruct = self._instruct_for(text)
         if not speaker:
             raise ValueError(
                 "CustomVoice generation requires a speaker. "
@@ -978,7 +994,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
                 text=text,
                 speaker=speaker,
                 language=self.language,
-                instruct=self.instruct,
+                instruct=instruct,
             )
             return
 
@@ -987,7 +1003,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
                 text=text,
                 speaker=speaker,
                 language=self.language,
-                instruct=self.instruct,
+                instruct=instruct,
                 chunk_size=self.streaming_chunk_size,
                 max_new_tokens=utterance_max_new_tokens,
                 non_streaming_mode=self.non_streaming_mode,
@@ -998,13 +1014,14 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
 
     def _process_voice_design(self, text: str) -> Iterator[bytes | np.ndarray]:
         utterance_max_new_tokens = self._estimate_max_new_tokens(text)
+        instruct = self._instruct_for(text)
         if self.backend == "mlx":
             yield from self._stream_mlx_generation(
                 self.model.generate_voice_design,
                 label="voice_design_mlx",
                 max_tokens=utterance_max_new_tokens,
                 text=text,
-                instruct=self.instruct,
+                instruct=instruct,
                 language=self.language,
             )
             return
@@ -1012,7 +1029,7 @@ class Qwen3TTSHandler(BaseHandler[TTSIn, TTSOut]):
         yield from self._stream(
             self.model.generate_voice_design_streaming(
                 text=text,
-                instruct=self.instruct,
+                instruct=instruct,
                 language=self.language,
                 chunk_size=self.streaming_chunk_size,
                 max_new_tokens=utterance_max_new_tokens,

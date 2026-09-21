@@ -160,5 +160,12 @@ class Qwen3TTSHandlerArguments:
             "help": "Whether to sample codec tokens stochastically. True (default) adds prosodic variety but also makes the timbre drift noticeably between utterances; set False for deterministic decoding, which pins the voice identity at the cost of repeating identical deliveries."
         },
     )
+    qwen3_tts_emotion_instruct: bool = field(
+        default=True,
+        metadata={
+            "help": "Append an emotion-specific style suffix to qwen3_tts_instruct based on keywords in the utterance, so delivery shifts with the mood of the reply. The base instruction is preserved, which keeps the speaker identity stable. Set False to always use the base instruction unchanged."
+        },
+    )
+
 
 
